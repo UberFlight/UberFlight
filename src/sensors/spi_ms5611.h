@@ -54,6 +54,6 @@ void readPressure(void);
 
 int32_t calculateTemperature(void);
 
-int32_t calculatePressureAltitude(void);
+void calculatePressureAltitude(int32_t *pressure, int32_t *temperature);
 
-bool ms5611DetectSpi(void);
+bool ms5611DetectSpi(baro_t *baro);

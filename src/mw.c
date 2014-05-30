@@ -13,7 +13,9 @@ uint32_t previousTime = 0;
 uint16_t cycleTime = 0;         // this is the number in micro second to achieve a full loop, it can differ a little and is taken into account in the PID loop
 int16_t headFreeModeHold;
 
-uint8_t vbat;                   // battery voltage in 0.1V steps
+uint16_t vbat;                  // battery voltage in 0.1V steps
+int32_t amperage;               // amperage read by current sensor in centiampere (1/100th A)
+uint32_t mAhdrawn;              // milliampere hours drawn from the battery since start
 int16_t telemTemperature1;      // gyro sensor temperature
 
 int16_t failsafeCnt = 0;
@@ -73,13 +75,10 @@ void blinkLED(uint8_t num, uint8_t wait, uint8_t repeat)
 
     for (r = 0; r < repeat; r++) {
         for (i = 0; i < num; i++) {
-            LED0_TOGGLE
-            ;            // switch LEDPIN state
+            LED0_TOGGLE      // switch LEDPIN state
             BEEP_ON
-            ;
             delay(wait);
             BEEP_OFF
-            ;
         }
         delay(60);
     }
@@ -94,9 +93,10 @@ void annexCode(void)
 
     // vbat shit
     static uint8_t vbatTimer = 0;
-    static uint8_t ind = 0;
-    uint16_t vbatRaw = 0;
-    static uint16_t vbatRawArray[8];
+    static int32_t vbatRaw = 0;
+    static int32_t amperageRaw = 0;
+    static uint32_t mAhdrawnRaw = 0;
+    static uint32_t vbatCycleTime = 0;
 
     int i;
 
@@ -159,12 +159,21 @@ void annexCode(void)
     }
 
     if (feature(FEATURE_VBAT)) {
+            vbatCycleTime += cycleTime;
           if (!(++vbatTimer % VBATFREQ)) {
 #if defined(NAZE)
-              vbatRawArray[(ind++) % 8] = adcGetChannel(ADC_BATTERY);
-              for (i = 0; i < 8; i++)
-                  vbatRaw += vbatRawArray[i];
-              vbat = batteryAdcToVoltage(vbatRaw / 8);
+     		vbatRaw -= vbatRaw / 8;
+            vbatRaw += adcGetChannel(ADC_BATTERY);
+            vbat = batteryAdcToVoltage(vbatRaw / 8);
+            
+            if (mcfg.power_adc_channel > 0) {
+                amperageRaw -= amperageRaw / 8;
+                amperageRaw += adcGetChannel(ADC_EXTERNAL_CURRENT);
+                amperage = currentSensorToCentiamps(amperageRaw / 8);
+                mAhdrawnRaw += (amperage * vbatCycleTime) / 1000; // will overflow at ~11000mAh
+                mAhdrawn = mAhdrawnRaw / (3600 * 100);
+                vbatCycleTime = 0;
+            }
 #endif
 #if defined(NAZEPRO)
               vbat = voltageMonitor();
@@ -220,16 +229,16 @@ void annexCode(void)
         static uint32_t GPSLEDTime;
         if ((int32_t)(currentTime - GPSLEDTime) >= 0 && (GPS_numSat >= 5)) {
             GPSLEDTime = currentTime + 150000;
-//            LED1_TOGGLE;
+            LED1_TOGGLE;
         }
     }
 
-//    // Read out gyro temperature. can use it for something somewhere. maybe get MCU temperature instead? lots of fun possibilities.
-//    if (gyro.temperature)
-//        gyro.temperature(&telemTemperature1);
-//    else {
-//        // TODO MCU temp
-//    }
+    // Read out gyro temperature. can use it for something somewhere. maybe get MCU temperature instead? lots of fun possibilities.
+    if (gyro.temperature)
+        gyro.temperature(&telemTemperature1);
+    else {
+        // TODO MCU temp
+    }
 }
 
 uint16_t pwmReadRawRC(uint8_t chan)
@@ -366,13 +375,11 @@ static void pidRewrite(void)
     // ----------PID controller----------
     for (axis = 0; axis < 3; axis++) {
         // -----Get the desired angle rate depending on flight mode
-        if ((f.ANGLE_MODE || f.HORIZON_MODE) && axis < 2) { // MODE relying on ACC
-        // calculate error and limit the angle to max configured inclination
-            errorAngle = constrain((rcCommand[axis] << 1) + GPS_angle[axis], -((int)mcfg.max_angle_inclination), +mcfg.max_angle_inclination) - angle[axis] + cfg.angleTrim[axis]; // 16 bits is ok here
-        }
         if (axis == 2) { // YAW is always gyro-controlled (MAG correction is applied to rcCommand)
             AngleRateTmp = (((int32_t)(cfg.yawRate + 27) * rcCommand[2]) >> 5);
         } else {
+            // calculate error and limit the angle to 50 degrees max inclination
+            errorAngle = (constrain(rcCommand[axis] + GPS_angle[axis], -500, +500) - angle[axis] + cfg.angleTrim[axis]) / 10.0f; // 16 bits is ok here
             if (!f.ANGLE_MODE) { //control is GYRO based (ACRO and HORIZON - direct sticks control is applied to rate PID
                 AngleRateTmp = ((int32_t)(cfg.rollPitchRate + 27) * rcCommand[axis]) >> 4;
                 if (f.HORIZON_MODE) {
@@ -673,9 +680,9 @@ void loop(void)
         if ((rcOptions[BOXARM]) == 0)
             f.OK_TO_ARM = 1;
         if (f.ANGLE_MODE || f.HORIZON_MODE) {
-//            LED1_ON;
+            LED1_ON;
         } else {
-//            LED1_OFF;
+            LED1_OFF;
         }
 
 #ifdef BARO
@@ -778,38 +785,43 @@ void loop(void)
     } else {                    // not in rc loop
         static int taskOrder = 0;    // never call all function in the same loop, to avoid high delay spikes
         switch (taskOrder) {
-            case 0:
-                taskOrder++;
+        case 0:
+            taskOrder++;
 #ifdef MAG
-                if (sensors(SENSOR_MAG) && Mag_update())
-                    break;
+            if (sensors(SENSOR_MAG) && Mag_update())
+                break;
 #endif
-            case 1:
-                taskOrder++;
+        case 1:
+            taskOrder++;
 #ifdef BARO
-                if (sensors(SENSOR_BARO) && Baro_update())
-                    getEstimatedAltitude();
+            if (sensors(SENSOR_BARO) && Baro_update())
                 break;
 #endif
-            case 2:
-                // if GPS feature is enabled, gpsThread() will be called at some intervals to check for stuck
-                // hardware, wrong baud rates, init GPS if needed, etc. Don't use SENSOR_GPS here as gpsThread() can and will
-                // change this based on available hardware
-                taskOrder++;
-                if (feature(FEATURE_GPS)) {
-                    gpsThread();
-                    break;
-                }
-            case 3:
-                taskOrder = 0;
+        case 2:
+            taskOrder++;
+#ifdef BARO
+            if (sensors(SENSOR_BARO) && getEstimatedAltitude())
+                break;
+#endif
+        case 3:
+            // if GPS feature is enabled, gpsThread() will be called at some intervals to check for stuck
+            // hardware, wrong baud rates, init GPS if needed, etc. Don't use SENSOR_GPS here as gpsThread() can and will
+            // change this based on available hardware
+            taskOrder++;
+            if (feature(FEATURE_GPS)) {
+                gpsThread();
+                break;
+            }
+        case 4:
+            taskOrder = 0;
 #ifdef SONAR
-                if (sensors(SENSOR_SONAR)) {
-                    Sonar_update();
-                }
+            if (sensors(SENSOR_SONAR)) {
+                Sonar_update();
+            }
 #endif
-                if (feature(FEATURE_VARIO) && f.VARIO_MODE)
-                    mwVario();
-                break;
+            if (feature(FEATURE_VARIO) && f.VARIO_MODE)
+                mwVario();
+            break;
         }
     }
 

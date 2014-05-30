@@ -147,6 +147,13 @@ int main(void)
         pwmInit(&pwm_params);
     }
 
+    previousTime = micros();
+    if (mcfg.mixerConfiguration == MULTITYPE_GIMBAL)
+        calibratingA = CALIBRATING_ACC_CYCLES;
+    calibratingG = CALIBRATING_GYRO_CYCLES;
+    calibratingB = CALIBRATING_BARO_CYCLES;             // 10 seconds init_delay + 200 * 25 ms = 15 seconds before ground pressure settles
+    f.SMALL_ANGLE = 1;
+
     while (1) {
         loop();
     }

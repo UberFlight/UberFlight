@@ -360,7 +360,7 @@ extern int16_t motor[MAX_MOTORS];
 extern int16_t servo[MAX_SERVOS];
 extern int16_t rcData[RC_CHANS];
 extern uint16_t rssi;                  // range: [0;1023]
-extern uint8_t vbat;
+extern uint16_t vbat;
 extern int16_t telemTemperature1;      // gyro sensor temperature
 extern uint8_t toggleBeep;
 

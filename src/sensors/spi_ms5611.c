@@ -157,7 +157,7 @@ int32_t calculateTemperature(void)
 // Calculate Pressure Altitude
 ///////////////////////////////////////////////////////////////////////////////
 
-int32_t calculatePressureAltitude(void)
+void calculatePressureAltitude(int32_t *pressure, int32_t *temperature)
 {
     int64_t offset;
     int64_t offset2 = 0;
@@ -192,8 +192,11 @@ int32_t calculatePressureAltitude(void)
         sensitivity -= sensitivity2;
     }
 
-    p = (((d1 * sensitivity) >> 21) - offset) >> 15;
-    return p;
+    p = ((((int64_t)d1 * sensitivity) >> 21) - offset) >> 15;
+    if (pressure)
+           *pressure = p;
+       if (temperature)
+           *temperature = calculateTemperature();
 //    return  (44330.0f * (1.0f - pow((float)p / 101325.0f, 1.0f / 5.255f)));
     //cliPrintF("%9.4f\n\r", sensors.pressureAlt50Hz);
 }
@@ -202,7 +205,7 @@ int32_t calculatePressureAltitude(void)
 // Pressure Initialization
 ///////////////////////////////////////////////////////////////////////////////
 
-bool ms5611DetectSpi(void)
+bool ms5611DetectSpi(baro_t *baro)
 {
     spiResetErrorCounter(MS5611_SPI);
     setSPIdivisor(MS5611_SPI, 2);  // 18 MHz SPI clock
@@ -271,6 +274,21 @@ bool ms5611DetectSpi(void)
     requestTemperature();
 
     delay(10);
+
+//    baro->start_ut = ms5611_start_ut;
+//    baro->get_ut = ms5611_get_ut;
+//    baro->start_up = ms5611_start_up;
+//    baro->get_up = ms5611_get_up;
+//    baro->calculate = ms5611_calculate;
+
+    baro->ut_delay = 10000;
+        baro->up_delay = 10000;
+        baro->start_ut = requestTemperature;
+        baro->get_ut = readTemperature;
+        baro->start_up = requestPressure;
+        baro->get_up = readPressure;
+        baro->calculate = calculatePressureAltitude;
+
 
     return true;
 }

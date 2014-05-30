@@ -18,11 +18,7 @@ int32_t AltHold;
 int32_t errorAltitudeI = 0;
 int32_t vario = 0;                      // variometer in cm/s
 int16_t throttleAngleCorrection = 0;    // correction of throttle in lateral wind,
-
-// mag stuff
 float magneticDeclination = 0.0f;       // calculated at startup from config
-//int16_t heading;
-
 float accVelScale;
 float throttleAngleScale;
 
@@ -283,9 +279,8 @@ static void getEstimatedAttitude(void)
             EstG.A[axis] = (EstG.A[axis] * (float)mcfg.gyro_cmpf_factor + accSmooth[axis]) * INV_GYR_CMPF_FACTOR;
     }
 
-
-    f.SMALL_ANGLE = (EstG.A[YAW] > smallAngle);
-
+    f.SMALL_ANGLE = (EstG.A[Z] > smallAngle);
+    
     // Attitude of the estimated vector
     anglerad[ROLL] = atan2f(EstG.V.Y, EstG.V.Z);
     anglerad[PITCH] = atan2f(-EstG.V.X, sqrtf(EstG.V.Y * EstG.V.Y + EstG.V.Z * EstG.V.Z));

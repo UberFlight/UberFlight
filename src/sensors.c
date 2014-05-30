@@ -138,7 +138,7 @@ bool sensorsAutodetect(void)
             if (!hmc5983DetectSpi(&mag, mcfg.mag_align))
                 sensorsClear(SENSOR_MAG);
 
-            if (!ms5611DetectSpi())
+            if (!ms5611DetectSpi(&baro))
                 sensorsClear(SENSOR_BARO);
         }
 
