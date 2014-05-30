@@ -98,8 +98,8 @@
 #define BIT_ACC                     2
 #define BIT_TEMP                    1
 
-static sensor_align_e gyroAlign = CW0_DEG;
-static sensor_align_e accAlign = CW0_DEG;
+static sensor_align_e gyroAlign = CW180_DEG;
+static sensor_align_e accAlign = CW180_DEG;
 
 // TODO read temperature
 //   rawMPU6000Temperature[1] = spiTransfer(MPU6000_SPI, 0x00);
