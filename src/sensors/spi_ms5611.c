@@ -66,7 +66,7 @@ int32_t ms5611Temperature;
 // Read Temperature Request Pressure
 ///////////////////////////////////////////////////////////////////////////////
 
-void readTemperature()
+void readTemperature(void)
 {
     setSPIdivisor(MS5611_SPI, 2);  // 18 MHz SPI clock
 
@@ -81,7 +81,7 @@ void readTemperature()
 //    delayMicroseconds(1);
 }
 
-void readPressure()
+void readPressure(void)
 {
 
     setSPIdivisor(MS5611_SPI, 2);  // 18 MHz SPI clock
@@ -99,7 +99,7 @@ void readPressure()
 
 }
 
-void requestTemperature()
+void requestTemperature(void)
 {
     setSPIdivisor(MS5611_SPI, 2);  // 18 MHz SPI clock
 
@@ -120,7 +120,7 @@ void requestTemperature()
     delayMicroseconds(1);
 
 }
-void requestPressure()
+void requestPressure(void)
 {
     setSPIdivisor(MS5611_SPI, 2);  // 18 MHz SPI clock
 
@@ -202,7 +202,7 @@ int32_t calculatePressureAltitude(void)
 // Pressure Initialization
 ///////////////////////////////////////////////////////////////////////////////
 
-bool ms5611DetectSpi()
+bool ms5611DetectSpi(void)
 {
     spiResetErrorCounter(MS5611_SPI);
     setSPIdivisor(MS5611_SPI, 2);  // 18 MHz SPI clock

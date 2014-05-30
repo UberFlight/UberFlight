@@ -430,7 +430,7 @@ void writeAllMotors(int16_t mc);
 void mixTable(void);
 
 // Serial
-void mspInit();
+void mspInit(void);
 //void serialInit(uint32_t baudrate);
 void serialCom(void);
 

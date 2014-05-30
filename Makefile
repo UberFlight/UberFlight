@@ -149,14 +149,14 @@ MW_SRC	 = \
 		utils_math.c \
 		$(CMSIS_SRC) \
 		$(DEVICE_STDPERIPH_SRC) \
-		startup/startup_$(DEVICE_MCUNAME).s 
+		startup/startup_$(DEVICE_MCUNAME)_gcc.s 
 
 COMMON_SRC =  \
 		drv/adc_$(DEVICE_MCUNAME).c \
 		drv/gpio_$(DEVICE_MCUNAME).c \
 		drv/spi_$(DEVICE_MCUNAME).c \
 		drv/i2c_$(DEVICE_MCUNAME).c \
-		drv/system_$(DEVICE_MCUNAME).c \
+		drv/board_$(DEVICE_MCUNAME).c \
 		drv/uart_$(DEVICE_MCUNAME).c \
 
 NAZEPRO_SRC = $(MW_SRC) \

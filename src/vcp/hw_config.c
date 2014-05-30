@@ -330,7 +330,7 @@ uint32_t CDC_Receive_DATA(uint8_t* recvBuf, uint32_t len)
  * Output         : None.
  * Return         : True if configured.
  *******************************************************************************/
-uint8_t usbIsConfigured()
+uint8_t usbIsConfigured(void)
 {
     return (bDeviceState == CONFIGURED);
 }
@@ -342,7 +342,7 @@ uint8_t usbIsConfigured()
  * Output         : None.
  * Return         : True if connected.
  *******************************************************************************/
-uint8_t usbIsConnected()
+uint8_t usbIsConnected(void)
 {
     return (bDeviceState != UNCONNECTED);
 }

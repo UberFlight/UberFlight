@@ -11,10 +11,7 @@ uint8_t toggleBeep = 0;
 uint32_t currentTime = 0;
 uint32_t previousTime = 0;
 uint16_t cycleTime = 0;         // this is the number in micro second to achieve a full loop, it can differ a little and is taken into account in the PID loop
-
-//mag stuff
 int16_t headFreeModeHold;
-int16_t magHold;
 
 uint8_t vbat;                   // battery voltage in 0.1V steps
 int16_t telemTemperature1;      // gyro sensor temperature

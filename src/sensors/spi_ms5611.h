@@ -46,11 +46,11 @@
 
 #define DISABLE_MS5611      GPIO_SetBits(MS5611_CS_GPIO,   MS5611_CS_PIN)
 
-void requestTemperature();
-void readTemperature();
+void requestTemperature(void);
+void readTemperature(void);
 
-void requestPressure();
-void readPressure();
+void requestPressure(void);
+void readPressure(void);
 
 int32_t calculateTemperature(void);
 

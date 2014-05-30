@@ -36,7 +36,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdint.h>
 
 void failureMode(uint8_t mode);
 

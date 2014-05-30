@@ -173,11 +173,11 @@ void batteryInit(void)
     uint32_t i;
     uint32_t voltage = 0;
 
-    // average up some voltage readings
-    for (i = 0; i < 32; i++) {
-        voltage += adcGetChannel(ADC_BATTERY);
-        delay(10);
-    }
+//    // average up some voltage readings
+//    for (i = 0; i < 32; i++) {
+//        voltage += adcGetChannel(ADC_BATTERY);
+//        delay(10);
+//    }
 
     voltage = batteryAdcToVoltage((uint16_t)(voltage / 32));
 

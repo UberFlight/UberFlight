@@ -21,7 +21,7 @@ int16_t throttleAngleCorrection = 0;    // correction of throttle in lateral win
 
 // mag stuff
 float magneticDeclination = 0.0f;       // calculated at startup from config
-int16_t heading;
+//int16_t heading;
 
 float accVelScale;
 float throttleAngleScale;
@@ -169,7 +169,8 @@ void rotateV(struct fp_vector *v, float *delta)
 
 
 
-#define F_CUT_ACCZ 10.0f // 10Hz should still be fast enoughstatic const float fc_acc = 0.5f / (M_PI * F_CUT_ACCZ);
+#define F_CUT_ACCZ 10.0f // 10Hz should still be fast enough
+static const float fc_acc = 0.5f / (M_PI * F_CUT_ACCZ);
 // rotate acc into Earth frame and calculate acceleration in it
 void acc_calc(uint32_t deltaT)
 {
@@ -320,7 +321,8 @@ static void getEstimatedAttitude(void)
 }
 
 #ifdef BARO
-#define UPDATE_INTERVAL 25000   // 40hz update rate (20hz LPF on acc)int getEstimatedAltitude(void)
+#define UPDATE_INTERVAL 25000   // 40hz update rate (20hz LPF on acc)
+int getEstimatedAltitude(void)
 {
     static uint32_t previousT;
     uint32_t currentT = micros();

@@ -228,7 +228,7 @@ void serializeBoxNamesReply(mwproto_t *instance)
     }
 }
 
-void mspInit()
+void mspInit(void)
 {
     int idx;
 
