@@ -1,4 +1,4 @@
-FF32mini
+Baseflight
 ========
 
-STM32 F3 version of FF32 for the NAZE32Pro
+STM32 F3 DEV version for the NAZE32Pro
