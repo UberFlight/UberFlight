@@ -151,13 +151,14 @@ int main(void)
         loop();
     }
 
-    void HardFault_Handler(void)
-    {
-        // fall out of the sky
-        writeAllMotors(mcfg.mincommand);
-        LED0_ON
-        BEEP_ON
-        while (1)
-            ; // Keep buzzer on
-    }
 }
+
+void HardFault_Handler(void)
+   {
+       // fall out of the sky
+       writeAllMotors(mcfg.mincommand);
+       LED0_ON
+       BEEP_ON
+       while (1)
+           ; // Keep buzzer on
+   }
