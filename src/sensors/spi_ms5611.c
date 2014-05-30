@@ -269,11 +269,11 @@ bool ms5611DetectSpi(baro_t *baro)
         return false;
     }
 
-    delay(10);
+//    delay(10);
 
-    requestTemperature();
+//    requestTemperature();
 
-    delay(10);
+//    delay(10);
 
 //    baro->start_ut = ms5611_start_ut;
 //    baro->get_ut = ms5611_get_ut;

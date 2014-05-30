@@ -63,7 +63,7 @@
 
 static float magGain[3] = { 1.0f, 1.0f, 1.0f };
 
-static sensor_align_e magAlign = CW180_DEG;
+static sensor_align_e magAlign = CW0_DEG;
 
 bool readHMC5983(int16_t *magADC)
 {
