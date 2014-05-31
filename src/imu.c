@@ -316,7 +316,8 @@ static void getEstimatedAttitude(void)
 }
 
 #ifdef BARO
-#define UPDATE_INTERVAL 25000   // 40hz update rate (20hz LPF on acc)
+#define UPDATE_INTERVAL 25000 // 40hz update rate (20hz LPF on acc)
+
 int getEstimatedAltitude(void)
 {
     static uint32_t previousT;
@@ -365,15 +366,15 @@ int getEstimatedAltitude(void)
     vel_acc = accZ_tmp * accVelScale * (float)accTimeSum;
 
     // Integrator - Altitude in cm
-    accAlt += (vel_acc * 0.5f) * dt + vel * dt;                                         // integrate velocity to get distance (x= a/2 * t^2)
-    accAlt = accAlt * cfg.baro_cf_alt + (float)BaroAlt * (1.0f - cfg.baro_cf_alt);      // complementary filter for Altitude estimation (baro & acc)
+    accAlt += (vel_acc * 0.5f) * dt + vel * dt; // integrate velocity to get distance (x= a/2 * t^2)
+    accAlt = accAlt * cfg.baro_cf_alt + (float)BaroAlt * (1.0f - cfg.baro_cf_alt); // complementary filter for Altitude estimation (baro & acc)
     EstAlt = accAlt;
     vel += vel_acc;
 
 #if 0
     debug[0] = accSum[2] / accSumCount; // acceleration
-    debug[1] = vel;// velocity
-    debug[2] = accAlt;// height
+    debug[1] = vel; // velocity
+    debug[2] = accAlt; // height
 #endif
 
     accSum_reset();
@@ -381,8 +382,8 @@ int getEstimatedAltitude(void)
     baroVel = (BaroAlt - lastBaroAlt) * 1000000.0f / dTime;
     lastBaroAlt = BaroAlt;
 
-    baroVel = constrain(baroVel, -300, 300);    // constrain baro velocity +/- 300cm/s
-    baroVel = applyDeadband(baroVel, 10);       // to reduce noise near zero
+    baroVel = constrain(baroVel, -300, 300); // constrain baro velocity +/- 300cm/s
+    baroVel = applyDeadband(baroVel, 10); // to reduce noise near zero
 
     // apply Complimentary Filter to keep the calculated velocity based on baro velocity (i.e. near real velocity).
     // By using CF it's possible to correct the drift of integrated accZ (velocity) without loosing the phase, i.e without delay
@@ -393,9 +394,9 @@ int getEstimatedAltitude(void)
     vario = applyDeadband(vel_tmp, 5);
 
     if (abs(angle[ROLL]) < 800 && abs(angle[PITCH]) < 800) { // only calculate pid if the copters thrust is facing downwards(<80deg)
-    // Altitude P-Controller
+        // Altitude P-Controller
         error = constrain(AltHold - EstAlt, -500, 500);
-        error = applyDeadband(error, 10);       // remove small P parametr to reduce noise near zero position
+        error = applyDeadband(error, 10); // remove small P parametr to reduce noise near zero position
         setVel = constrain((cfg.P8[PIDALT] * error / 128), -300, +300); // limit velocity to +/- 3 m/s
 
         // Velocity PID-Controller
@@ -406,7 +407,7 @@ int getEstimatedAltitude(void)
         // I
         errorAltitudeI += (cfg.I8[PIDVEL] * error) / 8;
         errorAltitudeI = constrain(errorAltitudeI, -(1024 * 200), (1024 * 200));
-        BaroPID += errorAltitudeI / 1024;     // I in range +/-200
+        BaroPID += errorAltitudeI / 1024; // I in range +/-200
 
         // D
         BaroPID -= constrain(cfg.D8[PIDVEL] * (accZ_tmp + accZ_old) / 64, -150, 150);

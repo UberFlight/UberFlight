@@ -395,7 +395,7 @@ extern config_t cfg;
 extern flags_t f;
 extern sensor_t acc;
 extern sensor_t gyro;
-////extern baro_t baro;
+extern baro_t baro;
 
 // main
 void setPIDController(int type);
@@ -409,12 +409,13 @@ void blinkLED(uint8_t num, uint8_t wait, uint8_t repeat);
 int getEstimatedAltitude(void);
 
 // Sensors
-void sensorsDetect(void);
+bool sensorsAutodetect(void);
 void batteryInit(void);
 uint16_t batteryAdcToVoltage(uint16_t src);
-void ACC_Common(void);
+int32_t currentSensorToCentiamps(uint16_t src);
+void ACC_getADC(void);
 int Baro_update(void);
-void GYRO_Common(void);
+void Gyro_getADC(void);
 void Mag_init(void);
 int Mag_update(void);
 void Sonar_init(void);

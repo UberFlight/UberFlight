@@ -46,14 +46,4 @@
 
 #define DISABLE_MS5611      GPIO_SetBits(MS5611_CS_GPIO,   MS5611_CS_PIN)
 
-void requestTemperature(void);
-void readTemperature(void);
-
-void requestPressure(void);
-void readPressure(void);
-
-int32_t calculateTemperature(void);
-
-void calculatePressureAltitude(int32_t *pressure, int32_t *temperature);
-
 bool ms5611DetectSpi(baro_t *baro);

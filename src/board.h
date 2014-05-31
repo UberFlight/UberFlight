@@ -49,8 +49,6 @@
 #include "printf.h"
 
 #define SENSORS_SET (SENSOR_GYRO | SENSOR_ACC | SENSOR_BARO | SENSOR_MAG)
-
-
 #define GYRO
 #define ACC
 #define MAG
@@ -59,6 +57,9 @@
 //#define SONAR
 #define BUZZER
 #define LED0
+
+
+
 
 
 // 96-bit Chip Unique ID on st F103/F303
