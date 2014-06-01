@@ -120,7 +120,7 @@ int main(void)
         else
             pwm_params.airplane = false;
 
-        pwm_params.useUART = feature(FEATURE_GPS);                  // TODO if core.port are not empty
+        pwm_params.useUART = feature(FEATURE_GPS) && feature(FEATURE_SERIALRX);   // TODO if core.ports are not empty
         pwm_params.useSoftSerial = feature(FEATURE_SOFTSERIAL);
         pwm_params.extraPwm = feature(FEATURE_PPM) || feature(FEATURE_SERIALRX);
         pwm_params.useSerialrx = feature(FEATURE_SERIALRX);
