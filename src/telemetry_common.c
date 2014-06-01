@@ -115,10 +115,10 @@ void checkTelemetryState(void)
         return;
     }
 
-    if (newEnabledState)
-        configureTelemetryPort();
-    else
-        freeTelemetryPort();
+//    if (newEnabledState)
+//        configureTelemetryPort();
+//    else
+//        freeTelemetryPort();
 
     telemetryEnabled = newEnabledState;
 }

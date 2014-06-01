@@ -84,10 +84,10 @@ int main(void)
         if (feature(FEATURE_GPS)) {
             USART_TypeDef *gpsUSARTx = UART_HEADER_RXTX;
             if (core.telemport) {
-                USART_TypeDef *gpsUSARTx = UART_HEADER_FLEX;
+                gpsUSARTx = UART_HEADER_FLEX;
             }
             if (core.rcvrport) {
-                USART_TypeDef *gpsUSARTx = UART_HEADER_RC;
+                gpsUSARTx = UART_HEADER_RC;
             }
             gpsInit(gpsUSARTx, mcfg.gps_baudrate);
         }
