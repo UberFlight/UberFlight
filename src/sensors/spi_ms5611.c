@@ -67,6 +67,17 @@ int32_t dT;
 int32_t ms5611Temperature;
 
 ///////////////////////////////////////////////////////////////////////////////
+// Calculate Temperature
+///////////////////////////////////////////////////////////////////////////////
+
+int32_t calculateTemperature(void)
+{
+    dT = (int32_t)d2.value - ((int32_t)c5.value << 8);
+    ms5611Temperature = 2000 + (int32_t)(((int64_t)dT * c6.value) >> 23);
+    return ms5611Temperature;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // Read Temperature Request Pressure
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -82,7 +93,7 @@ void readTemperature()
     DISABLE_MS5611;
 
     delayMicroseconds(1);
-
+    calculateTemperature();
 }
 
 void readPressure()
@@ -142,16 +153,6 @@ void requestPressure()
     delayMicroseconds(1);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// Calculate Temperature
-///////////////////////////////////////////////////////////////////////////////
-
-int32_t calculateTemperature(void)
-{
-    dT = (int32_t)d2.value - ((int32_t)c5.value << 8);
-    ms5611Temperature = 2000 + (int32_t)(((int64_t)dT * c6.value) >> 23);
-    return ms5611Temperature;
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Calculate Pressure Altitude
