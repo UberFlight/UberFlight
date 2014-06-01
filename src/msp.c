@@ -108,8 +108,8 @@ typedef struct mwproto {
 } mwproto_t;
 
 //3 serial instances, first is main port, second and third possible softserial.
-#define NUMSERIALINSTANCES  3
-mwproto_t serialinstances[NUMSERIALINSTANCES];
+#define MAX_MSP_INSTANCES  3
+mwproto_t serialinstances[MAX_MSP_INSTANCES];
 
 void serialize32(mwproto_t *instance, uint32_t a)
 {
@@ -232,7 +232,7 @@ void mspInit(void)
 {
     int idx;
 
-    for (idx = 0; idx < NUMSERIALINSTANCES; idx++) {
+    for (idx = 0; idx < MAX_MSP_INSTANCES; idx++) {
         serialinstances[idx].c_state = IDLE;
         serialinstances[idx].port = 0;
         serialinstances[idx].offset = 0;
@@ -240,7 +240,7 @@ void mspInit(void)
     }
     serialinstances[0].port = core.mainport;
 
-    if (feature(FEATURE_TELEMETRY)) {
+    if (feature(FEATURE_TELEMETRY) && (mcfg.telemetry_provider == TELEMETRY_PROVIDER_MSP)) {
         serialinstances[1].port = core.telemport;
     }
 
@@ -706,7 +706,7 @@ void serialCom(void)
     }
 
     int idx;
-    for (idx = 0; idx < 3; idx++) {
+    for (idx = 0; idx < MAX_MSP_INSTANCES; idx++) {
         if (serialinstances[idx].port)
             serialInstanceCom(&serialinstances[idx], idx == 0);
     }

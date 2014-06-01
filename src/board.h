@@ -134,7 +134,8 @@ typedef enum {
 } GPSBaudRates;
 
 typedef enum {
-    TELEMETRY_PROVIDER_FRSKY = 0,
+    TELEMETRY_PROVIDER_MSP = 0,
+    TELEMETRY_PROVIDER_FRSKY,
     TELEMETRY_PROVIDER_HOTT,
     TELEMETRY_PROVIDER_MAX = TELEMETRY_PROVIDER_HOTT
 } TelemetryProvider;
@@ -146,11 +147,11 @@ typedef enum {
     TELEMETRY_PORT_MAX = TELEMETRY_PORT_SOFTSERIAL_2
 } TelemetryPort;
 
-//typedef enum {
-//    X = 0,
-//    Y,
-//    Z
-//} sensor_axis_e;
+typedef enum {
+    X = 0,
+    Y,
+    Z
+} sensor_axis_e;
 
 typedef enum {
     ALIGN_DEFAULT = 0,                                      // driver-provided alignment
@@ -227,14 +228,67 @@ typedef struct baro_t {
 #include "vcp/usb_desc.h"
 #include "vcp/usb_pwr.h"
 
+#define BEEP_PIN    GPIO_Pin_10
+#define BEEP_GPIO   GPIOB
+
+#define LED0_PIN    GPIO_Pin_12
+#define LED0_GPIO   GPIOB
+
+#define LED1_PIN    GPIO_Pin_12
+#define LED1_GPIO   GPIOB
+
+#define MASTER_SPEKTRUM_UART_PIN       GPIO_Pin_11
+#define MASTER_SPEKTRUM_UART_GPIO      GPIOB
+#define MASTER_SPEKTRUM_UART_PINSOURCE GPIO_PinSource11
+
+#define UART1_TX_PIN GPIO_Pin_9
+#define UART1_RX_PIN GPIO_Pin_10
+#define UART1_GPIO GPIOA
+#define UART1_TX_PINSOURCE GPIO_PinSource9
+#define UART1_RX_PINSOURCE GPIO_PinSource10
+
+#define UART2_TX_PIN        GPIO_Pin_3
+#define UART2_RX_PIN        GPIO_Pin_15
+#define UART2_TX_GPIO       GPIOB
+#define UART2_RX_GPIO       GPIOA
+#define UART2_TX_PINSOURCE  GPIO_PinSource3
+#define UART2_RX_PINSOURCE  GPIO_PinSource15
 #endif
+
 
 #if defined(NAZE)
 #include "stm32f10x.h"
 #include "stm32f10x_conf.h"
+#define LED0_GPIO   GPIOB
+#define LED0_PIN    Pin_3 // PB3 (LED)
+#define LED1_GPIO   GPIOB
+#define LED1_PIN    Pin_4 // PB4 (LED)
+#define BEEP_GPIO   GPIOA
+#define BEEP_PIN    Pin_12 // PA12 (Buzzer)
+#define BARO_GPIO   GPIOC
+#define BARO_PIN    Pin_13
+
+// Fixme
+#define MASTER_SPEKTRUM_UART_PIN       GPIO_Pin_11
+#define MASTER_SPEKTRUM_UART_GPIO      GPIOB
+#define MASTER_SPEKTRUM_UART_PINSOURCE GPIO_PinSource11
+#define UART1_TX_PIN GPIO_Pin_9
+#define UART1_RX_PIN GPIO_Pin_10
+#define UART1_GPIO GPIOA
+#define UART1_TX_PINSOURCE GPIO_PinSource9
+#define UART1_RX_PINSOURCE GPIO_PinSource10
+
+#define UART2_TX_PIN        GPIO_Pin_3
+#define UART2_RX_PIN        GPIO_Pin_15
+#define UART2_TX_GPIO       GPIOB
+#define UART2_RX_GPIO       GPIOA
+#define UART2_TX_PINSOURCE  GPIO_PinSource3
+#define UART2_RX_PINSOURCE  GPIO_PinSource15
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
+
+
 
 
 #include "drv/adc.h"

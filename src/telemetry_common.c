@@ -125,14 +125,17 @@ void checkTelemetryState(void)
 
 void handleTelemetry(void)
 {
-    if (!isTelemetryConfigurationValid || !determineNewTelemetryEnabledState())
-        return;
 
-    if (isTelemetryProviderFrSky()) {
-        handleFrSkyTelemetry();
-    }
+    // TODO remove java style , use telemtryFctPtr
 
-    if (isTelemetryProviderHoTT()) {
-        handleHoTTTelemetry();
-    }
+//    if (!isTelemetryConfigurationValid || !determineNewTelemetryEnabledState())
+//        return;
+//
+//    if (isTelemetryProviderFrSky()) {
+//        handleFrSkyTelemetry();
+//    }
+//
+//    if (isTelemetryProviderHoTT()) {
+//        handleHoTTTelemetry();
+//    }
 }

@@ -40,30 +40,3 @@
 #include "utils_math.h"
 #include "align.h"
 
-typedef enum {
-    X = 0,
-    Y,
-    Z
-} sensor_axis_e;
-//
-//typedef union {
-//    int16_t value;
-//    uint8_t bytes[2];
-//} int16andUint8_t;
-//
-//typedef union {
-//    int32_t value;
-//    uint8_t bytes[4];
-//} int32andUint8_t;
-//
-//typedef union {
-//    uint16_t value;
-//    uint8_t bytes[2];
-//} uint16andUint8_t;
-//
-//typedef union {
-//    uint32_t value;
-//    uint8_t bytes[4];
-//} uint32andUint8_t;
-//
-//

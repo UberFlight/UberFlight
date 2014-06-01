@@ -75,7 +75,7 @@ void blinkLED(uint8_t num, uint8_t wait, uint8_t repeat)
 
     for (r = 0; r < repeat; r++) {
         for (i = 0; i < num; i++) {
-            LED0_TOGGLE      // switch LEDPIN state
+            LED0_TOGGLE
             BEEP_ON
             delay(wait);
             BEEP_OFF
@@ -159,13 +159,13 @@ void annexCode(void)
     }
 
     if (feature(FEATURE_VBAT)) {
-            vbatCycleTime += cycleTime;
-          if (!(++vbatTimer % VBATFREQ)) {
+        vbatCycleTime += cycleTime;
+        if (!(++vbatTimer % VBATFREQ)) {
 #if defined(NAZE)
-     		vbatRaw -= vbatRaw / 8;
+            vbatRaw -= vbatRaw / 8;
             vbatRaw += adcGetChannel(ADC_BATTERY);
             vbat = batteryAdcToVoltage(vbatRaw / 8);
-            
+
             if (mcfg.power_adc_channel > 0) {
                 amperageRaw -= amperageRaw / 8;
                 amperageRaw += adcGetChannel(ADC_EXTERNAL_CURRENT);
@@ -176,15 +176,14 @@ void annexCode(void)
             }
 #endif
 #if defined(NAZEPRO)
-              vbat = voltageMonitor();
+            vbat = voltageMonitor();
 #endif
-          }
-          if ((vbat > batteryWarningVoltage) || (vbat < mcfg.vbatmincellvoltage)) { // VBAT ok, buzzer off
-              buzzerFreq = 0;
-          } else
-              buzzerFreq = 4;     // low battery
-      }
-
+        }
+        if ((vbat > batteryWarningVoltage) || (vbat < mcfg.vbatmincellvoltage)) { // VBAT ok, buzzer off
+            buzzerFreq = 0;
+        } else
+            buzzerFreq = 4;     // low battery
+    }
 
     buzzer(buzzerFreq);         // external buzzer routine that handles buzzer events globally now
 
@@ -229,7 +228,7 @@ void annexCode(void)
         static uint32_t GPSLEDTime;
         if ((int32_t)(currentTime - GPSLEDTime) >= 0 && (GPS_numSat >= 5)) {
             GPSLEDTime = currentTime + 150000;
-            LED1_TOGGLE;
+            LED1_TOGGLE
         }
     }
 
@@ -680,9 +679,9 @@ void loop(void)
         if ((rcOptions[BOXARM]) == 0)
             f.OK_TO_ARM = 1;
         if (f.ANGLE_MODE || f.HORIZON_MODE) {
-            LED1_ON;
+            LED1_ON
         } else {
-            LED1_OFF;
+            LED1_OFF
         }
 
 #ifdef BARO
@@ -785,38 +784,38 @@ void loop(void)
     } else {                    // not in rc loop
         static int taskOrder = 0;    // never call all function in the same loop, to avoid high delay spikes
         switch (taskOrder) {
-        case 0:
-            taskOrder++;
+            case 0:
+                taskOrder++;
 #ifdef MAG
-            if (sensors(SENSOR_MAG) && Mag_update())
-                break;
+                if (sensors(SENSOR_MAG) && Mag_update())
+                    break;
 #endif
-        case 1:
-            taskOrder++;
+            case 1:
+                taskOrder++;
 #ifdef BARO
-            if (sensors(SENSOR_BARO) && Baro_update())
-                getEstimatedAltitude();
-            break;
-#endif
-        case 2:
-            // if GPS feature is enabled, gpsThread() will be called at some intervals to check for stuck
-            // hardware, wrong baud rates, init GPS if needed, etc. Don't use SENSOR_GPS here as gpsThread() can and will
-            // change this based on available hardware
-            taskOrder++;
-            if (feature(FEATURE_GPS)) {
-                gpsThread();
+                if (sensors(SENSOR_BARO) && Baro_update())
+                    getEstimatedAltitude();
                 break;
-            }
-        case 3:
-            taskOrder = 0;
-#ifdef SONAR
-            if (sensors(SENSOR_SONAR)) {
-                Sonar_update();
-            }
 #endif
-            if (feature(FEATURE_VARIO) && f.VARIO_MODE)
-                mwVario();
-            break;
+            case 2:
+                // if GPS feature is enabled, gpsThread() will be called at some intervals to check for stuck
+                // hardware, wrong baud rates, init GPS if needed, etc. Don't use SENSOR_GPS here as gpsThread() can and will
+                // change this based on available hardware
+                taskOrder++;
+                if (feature(FEATURE_GPS)) {
+                    gpsThread();
+                    break;
+                }
+            case 3:
+                taskOrder = 0;
+#ifdef SONAR
+                if (sensors(SENSOR_SONAR)) {
+                    Sonar_update();
+                }
+#endif
+                if (feature(FEATURE_VARIO) && f.VARIO_MODE)
+                    mwVario();
+                break;
         }
     }
 

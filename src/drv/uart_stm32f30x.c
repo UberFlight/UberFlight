@@ -1,13 +1,10 @@
 
-#include "pin.h"
 #include "board.h"
 
 // Using RX DMA disables the use of receive callbacks
 #define USE_USART1_RX_DMA
 #define USE_USART2_RX_DMA
 #define USE_USART2_TX_DMA
-
-
 
 static uartPort_t uartPort1;
 static uartPort_t uartPort2;
@@ -98,11 +95,11 @@ uartPort_t *serialUSART2(uint32_t baudRate, portMode_t mode)
     s->USARTx = USART2;
 #ifdef USE_USART2_RX_DMA
     s->rxDMAChannel = DMA1_Channel6;
-    s->rxDMAPeripheralBaseAddr = (uint32_t)&s->USARTx->RDR;
+    s->rxDMAPeripheralBaseAddr = (uint32_t) & s->USARTx->RDR;
 #endif
 #ifdef USE_USART2_TX_DMA
     s->txDMAChannel = DMA1_Channel7;
-    s->txDMAPeripheralBaseAddr = (uint32_t)&s->USARTx->TDR;
+    s->txDMAPeripheralBaseAddr = (uint32_t) & s->USARTx->TDR;
 #endif
 
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
@@ -197,27 +194,12 @@ void usartIrqHandler(uartPort_t *s)
     }
 }
 
-void USART1_IRQHandler(void)
-{
-    uartPort_t *s = &uartPort1;
-
-    usartIrqHandler(s);
-}
-
-void USART2_IRQHandler(void)
-{
-    uartPort_t *s = &uartPort2;
-
-    usartIrqHandler(s);
-}
-
-
 
 uartPort_t *serialUSART3(uint32_t baudRate, portMode_t mode)
 {
     uartPort_t *s;
-    static volatile uint8_t rx3Buffer[UART2_RX_BUFFER_SIZE];
-    static volatile uint8_t tx3Buffer[UART2_TX_BUFFER_SIZE];
+    static volatile uint8_t rx3Buffer[UART3_RX_BUFFER_SIZE];
+    static volatile uint8_t tx3Buffer[UART3_TX_BUFFER_SIZE];
     NVIC_InitTypeDef NVIC_InitStructure;
     GPIO_InitTypeDef GPIO_InitStructure;
 
@@ -226,21 +208,12 @@ uartPort_t *serialUSART3(uint32_t baudRate, portMode_t mode)
 
     s->port.baudRate = baudRate;
 
-    s->port.rxBufferSize = UART2_RX_BUFFER_SIZE;
-    s->port.txBufferSize = UART2_TX_BUFFER_SIZE;
+    s->port.rxBufferSize = UART3_RX_BUFFER_SIZE;
+    s->port.txBufferSize = UART3_TX_BUFFER_SIZE;
     s->port.rxBuffer = rx3Buffer;
     s->port.txBuffer = tx3Buffer;
 
     s->USARTx = USART3;
-
-#ifdef USE_USART2_RX_DMA
-    s->rxDMAChannel = DMA1_Channel6;
-    s->rxDMAPeripheralBaseAddr = (uint32_t)&s->USARTx->RDR;
-#endif
-#ifdef USE_USART2_TX_DMA
-    s->txDMAChannel = DMA1_Channel7;
-    s->txDMAPeripheralBaseAddr = (uint32_t)&s->USARTx->TDR;
-#endif
 
     NVIC_InitStructure.NVIC_IRQChannel = USART3_IRQn;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
@@ -260,3 +233,25 @@ uartPort_t *serialUSART3(uint32_t baudRate, portMode_t mode)
 
     return s;
 }
+
+void USART1_IRQHandler(void)
+{
+    uartPort_t *s = &uartPort1;
+
+    usartIrqHandler(s);
+}
+
+void USART2_IRQHandler(void)
+{
+    uartPort_t *s = &uartPort2;
+
+    usartIrqHandler(s);
+}
+
+void USART3_IRQHandler(void)
+{
+    uartPort_t *s = &uartPort3;
+
+    usartIrqHandler(s);
+}
+

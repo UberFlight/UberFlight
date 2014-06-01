@@ -276,7 +276,7 @@ static void resetConf(void)
     mcfg.vbatmincellvoltage = 33;
     mcfg.power_adc_channel = 0;
     mcfg.serialrx_type = 0;
-    mcfg.telemetry_provider = TELEMETRY_PROVIDER_FRSKY;
+    mcfg.telemetry_provider = TELEMETRY_PROVIDER_MSP;
     mcfg.telemetry_port = TELEMETRY_PORT_UART;
     mcfg.telemetry_switch = 0;
     mcfg.midrc = 1500;
