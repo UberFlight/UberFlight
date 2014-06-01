@@ -26,7 +26,6 @@ bool mspFrameComplete(void)
 
 void mspRxInit(rcReadRawDataPtr *callback)
 {
-    // core.rcvrport =
     if (callback)
         *callback = mspReadRawRC;
 }

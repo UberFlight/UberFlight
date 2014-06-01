@@ -32,37 +32,19 @@ int main(void)
 
     sensorsSet(SENSORS_SET);    // we have these sensors; SENSORS_SET defined in board.h depending on hardware platform
 
-
-
     // start serial
 #if defined(NAZEPRO)
     core.mainport = usbInit();
     sensorsAutodetect();            // drop out any sensors that don't seem to work, init all the others.
 
-        if (!sensors(SENSOR_GYRO))  // if gyro was not detected, we give up now.
-            failureMode(3);
+    if (!sensors(SENSOR_GYRO))// if gyro was not detected, we give up now.
+    failureMode(3);
 #endif
 #if defined(NAZE)
     core.mainport = uartOpen(USART1, NULL, mcfg.serial_baudrate, MODE_RXTX,SERIAL_NOT_INVERTED);
 #endif
 
-#define UART_RXTX_HEADER USART2
-#define UART_RC_HEADER USART1
-
-    if (feature(FEATURE_TELEMETRY)) {
-        initTelemetry(UART_RXTX_HEADER);
-        if (feature(FEATURE_GPS))
-            gpsInit(UART_RC_HEADER, mcfg.gps_baudrate);
-    } else {
-        if (feature(FEATURE_GPS))
-            gpsInit(UART_RXTX_HEADER, mcfg.gps_baudrate);
-    }
-
-
-    mspInit();                  // this will configure the aux box based on features and detected sensors
-
-    mixerInit();                // this will set core.useServo var depending on mixer type
-    imuInit();                  // set initial flight constant like gravition or other user defined setting
+    // set initial flight constant like gravition or other user defined setting
 
     {
 
@@ -94,6 +76,30 @@ int main(void)
     }
 
     {
+        // now init other serial
+        if (feature(FEATURE_TELEMETRY)) {
+            initTelemetry(UART_HEADER_RXTX);
+        }
+
+        if (feature(FEATURE_GPS)) {
+            USART_TypeDef *gpsUSARTx = UART_HEADER_RXTX;
+            if (core.telemport) {
+                USART_TypeDef *gpsUSARTx = UART_HEADER_FLEX;
+            }
+            if (core.rcvrport) {
+                USART_TypeDef *gpsUSARTx = UART_HEADER_RC;
+            }
+            gpsInit(gpsUSARTx, mcfg.gps_baudrate);
+        }
+
+    }
+
+    mspInit();                  // this will configure the aux box based on features and detected sensors
+
+    mixerInit();                // this will set core.useServo var depending on mixer type
+    imuInit();
+
+    {
         // TODO fixme configure power ADC
         drv_adc_config_t adc_params;
         if (mcfg.power_adc_channel > 0 && (mcfg.power_adc_channel == 1 || mcfg.power_adc_channel == 9))
@@ -114,7 +120,7 @@ int main(void)
         else
             pwm_params.airplane = false;
 
-        pwm_params.useUART = feature(FEATURE_GPS); // TODO if core.port are not empty
+        pwm_params.useUART = feature(FEATURE_GPS);                  // TODO if core.port are not empty
         pwm_params.useSoftSerial = feature(FEATURE_SOFTSERIAL);
         pwm_params.extraPwm = feature(FEATURE_PPM) || feature(FEATURE_SERIALRX);
         pwm_params.useSerialrx = feature(FEATURE_SERIALRX);
@@ -123,11 +129,11 @@ int main(void)
         pwm_params.extraServos = cfg.gimbal_flags & GIMBAL_FORWARDAUX;
         pwm_params.motorPwmRate = mcfg.motor_pwm_rate;
         pwm_params.servoPwmRate = mcfg.servo_pwm_rate;
-        pwm_params.idlePulse = PULSE_1MS; // standard PWM for brushless ESC (default, overridden below)
+        pwm_params.idlePulse = PULSE_1MS;                  // standard PWM for brushless ESC (default, overridden below)
         if (feature(FEATURE_3D))
             pwm_params.idlePulse = mcfg.neutral3d;
         if (pwm_params.motorPwmRate > 500)
-            pwm_params.idlePulse = 0; // brushed motors
+            pwm_params.idlePulse = 0;                  // brushed motors
         pwm_params.servoCenterPulse = mcfg.midrc;
         pwm_params.failsafeThreshold = cfg.failsafe_detect_threshold;
 
@@ -161,15 +167,12 @@ int main(void)
 }
 
 void HardFault_Handler(void)
-   {
-       // fall out of the sky
-       writeAllMotors(mcfg.mincommand);
-       LED0_ON
-       BEEP_ON
-       while (1)
-           ; // Keep buzzer on
-   }
-
-
-
+{
+// fall out of the sky
+    writeAllMotors(mcfg.mincommand);
+    LED0_ON
+    BEEP_ON
+    while (1)
+        ; // Keep buzzer on
+}
 

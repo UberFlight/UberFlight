@@ -253,6 +253,11 @@ typedef struct baro_t {
 #define UART2_RX_GPIO       GPIOA
 #define UART2_TX_PINSOURCE  GPIO_PinSource3
 #define UART2_RX_PINSOURCE  GPIO_PinSource15
+
+#define UART_HEADER_RXTX USART2
+#define UART_HEADER_RC USART1
+#define UART_HEADER_FLEX USART3
+
 #endif
 
 

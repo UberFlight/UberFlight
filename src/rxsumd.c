@@ -14,7 +14,7 @@ static uint32_t sumdChannelData[SUMD_MAX_CHANNEL];
 
 void sumdInit(rcReadRawDataPtr *callback)
 {
-    core.rcvrport = uartOpen(USART3, sumdDataReceive, 115200, MODE_RX, SERIAL_NOT_INVERTED);
+    core.rcvrport = uartOpen(UART_HEADER_FLEX, sumdDataReceive, 115200, MODE_RX, SERIAL_NOT_INVERTED);
     if (callback)
         *callback = sumdReadRawRC;
 }
