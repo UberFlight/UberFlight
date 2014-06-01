@@ -3,6 +3,7 @@
 
 ##Polish me##
 these things work and are tested
+
 * motor/servo pwm 10 out
 * standard rx pwm 8 chan
 * serial rx : spketrum sat
@@ -17,6 +18,7 @@ these things work and are tested
 
 ##Test Me##
 these things need to be tested
+
 * sbus 
 * sumd
 * gps ublox (rx/tx)
