@@ -68,35 +68,59 @@ extern int16_t failsafeCnt;
 static const uint8_t multiNoPWM[] = { PWM1 | TYPE_IP,     // PPM input
 PWM9 | TYPE_M,      // Swap to servo if needed
 PWM10 | TYPE_M,     // Swap to servo if needed
-PWM11 | TYPE_M, PWM12 | TYPE_M, PWM13 | TYPE_M, PWM14 | TYPE_M, PWM5 | TYPE_M,      // Swap to servo if needed
+PWM11 | TYPE_M,
+PWM12 | TYPE_M,
+PWM13 | TYPE_M,
+PWM14 | TYPE_M,
+PWM5 | TYPE_M,      // Swap to servo if needed
 PWM6 | TYPE_M,      // Swap to servo if needed
 PWM7 | TYPE_M,      // Swap to servo if needed
 PWM8 | TYPE_M,      // Swap to servo if needed
 0xFF };
 
 static const uint8_t multiPWM[] = { PWM1 | TYPE_IW,     // input #1
-PWM2 | TYPE_IW, PWM3 | TYPE_IW, PWM4 | TYPE_IW, PWM5 | TYPE_IW, PWM6 | TYPE_IW, PWM7 | TYPE_IW, PWM8 | TYPE_IW,     // input #8
+PWM2 | TYPE_IW,
+PWM3 | TYPE_IW,
+PWM4 | TYPE_IW,
+PWM5 | TYPE_IW,
+PWM6 | TYPE_IW,
+PWM7 | TYPE_IW,
+PWM8 | TYPE_IW,     // input #8
 PWM9 | TYPE_M,      // motor #1 or servo #1 (swap to servo if needed)
 PWM10 | TYPE_M,     // motor #2 or servo #2 (swap to servo if needed)
 PWM11 | TYPE_M,     // motor #1 or #3
-PWM12 | TYPE_M, PWM13 | TYPE_M, PWM14 | TYPE_M,     // motor #4 or #6
+PWM12 | TYPE_M,
+PWM13 | TYPE_M,
+PWM14 | TYPE_M,     // motor #4 or #6
 0xFF };
 
 static const uint8_t airNoPWM[] = { PWM1 | TYPE_IP,     // PPM input
 PWM9 | TYPE_M,      // motor #1
 PWM10 | TYPE_M,     // motor #2
 PWM11 | TYPE_S,     // servo #1
-PWM12 | TYPE_S, PWM13 | TYPE_S, PWM14 | TYPE_S,     // servo #4
+PWM12 | TYPE_S,
+PWM13 | TYPE_S,
+PWM14 | TYPE_S,     // servo #4
 PWM5 | TYPE_S,      // servo #5
-PWM6 | TYPE_S, PWM7 | TYPE_S, PWM8 | TYPE_S,      // servo #8
+PWM6 | TYPE_S,
+PWM7 | TYPE_S,
+PWM8 | TYPE_S,      // servo #8
 0xFF };
 
 static const uint8_t airPWM[] = { PWM1 | TYPE_IW,     // input #1
-PWM2 | TYPE_IW, PWM3 | TYPE_IW, PWM4 | TYPE_IW, PWM5 | TYPE_IW, PWM6 | TYPE_IW, PWM7 | TYPE_IW, PWM8 | TYPE_IW,     // input #8
+PWM2 | TYPE_IW,
+PWM3 | TYPE_IW,
+PWM4 | TYPE_IW,
+PWM5 | TYPE_IW,
+PWM6 | TYPE_IW,
+PWM7 | TYPE_IW,
+PWM8 | TYPE_IW,     // input #8
 PWM9 | TYPE_M,      // motor #1
 PWM10 | TYPE_M,     // motor #2
 PWM11 | TYPE_S,     // servo #1
-PWM12 | TYPE_S, PWM13 | TYPE_S, PWM14 | TYPE_S,     // servo #4
+PWM12 | TYPE_S,
+PWM13 | TYPE_S,
+PWM14 | TYPE_S,     // servo #4
 0xFF };
 
 static const uint8_t * const hardwareMaps[] = { multiPWM, multiNoPWM, airPWM, airNoPWM, };
