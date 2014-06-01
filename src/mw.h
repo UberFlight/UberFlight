@@ -416,8 +416,7 @@ int32_t currentSensorToCentiamps(uint16_t src);
 void ACC_getADC(void);
 bool Baro_update(void);
 void Gyro_getADC(void);
-void Mag_init(void);
-int Mag_update(void);
+bool Mag_update(void);
 void Sonar_init(void);
 void Sonar_update(void);
 

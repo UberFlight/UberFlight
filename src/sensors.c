@@ -5,7 +5,7 @@ uint16_t calibratingA = 0;      // the calibration is done is the main loop. Cal
 uint16_t calibratingB = 0;      // baro calibration = get new ground pressure value
 uint16_t calibratingG = 0;
 uint16_t acc_1G = 256;          // this is the 1G measured acceleration.
-int16_t heading, magHold;
+int16_t heading, magHold, magInit = 0;
 
 extern uint16_t InflightcalibratingA;
 extern bool AccInflightCalibrationMeasurementDone;
@@ -153,8 +153,12 @@ bool sensorsAutodetect(void)
     if (sensors(SENSOR_GYRO))
         gyro.init(mcfg.gyro_align);
 
-    if (sensors(SENSOR_MAG))
-        Mag_init();
+    if (sensors(SENSOR_MAG)){
+        mag.init(mcfg.mag_align);
+        magInit= 1;
+    }
+
+
 
     return true;
 }
@@ -401,20 +405,9 @@ void Gyro_getADC(void)
 }
 
 #ifdef MAG
-static uint8_t magInit = 0;
 
-void Mag_init(void)
-{
-    // initialize and calibration. turn on led during mag calibration (calibration routine blinks it)
-    LED1_ON
-    ;
-    mag.init(mcfg.mag_align);
-    LED1_OFF
-    ;
-    magInit = 1;
-}
 
-int Mag_update(void)
+bool Mag_update(void)
 {
     static uint32_t t, tCal = 0;
     static int16_t magZeroTempMin[3];
@@ -436,6 +429,7 @@ int Mag_update(void)
             magZeroTempMax[axis] = magADC[axis];
         }
         f.CALIBRATE_MAG = 0;
+        magInit = 0;
     }
 
     if (magInit) {              // we apply offset only once mag calibration is done
@@ -447,7 +441,6 @@ int Mag_update(void)
     if (tCal != 0) {
         if ((t - tCal) < 30000000) {    // 30s: you have 30s to turn the multi in all directions
             LED0_TOGGLE
-            ;
             for (axis = 0; axis < 3; axis++) {
                 if (magADC[axis] < magZeroTempMin[axis])
                     magZeroTempMin[axis] = magADC[axis];
@@ -459,6 +452,7 @@ int Mag_update(void)
             for (axis = 0; axis < 3; axis++)
                 mcfg.magZero[axis] = (magZeroTempMin[axis] + magZeroTempMax[axis]) / 2; // Calculate offsets
             writeConfig(1, true);
+            magInit = 1;
         }
     }
 
