@@ -82,6 +82,11 @@ VPATH		:= $(VPATH):$(DIR_STDPERIPH)/src:$(DIR_USBFS)/src
 USBPERIPH_SRC = $(notdir $(wildcard $(DIR_USBFS)/src/*.c))
 STDPERIPH_SRC = $(notdir $(wildcard $(DIR_STDPERIPH)/src/*.c))
 
+EXCLUDES = stm32f30x_crc.c\
+stm32f30x_can.c
+
+STDPERIPH_SRC := $(filter-out ${EXCLUDES}, $(STDPERIPH_SRC))
+
 DEVICE_STDPERIPH_SRC = $(USBPERIPH_SRC) \
 $(STDPERIPH_SRC)
 
