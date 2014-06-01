@@ -51,7 +51,7 @@ typedef enum GimbalFlags {
     GIMBAL_FORWARDAUX = 1 << 2,
 } GimbalFlags;
 
-/*********** Axes / RC alias *****************/
+/*********** RC alias *****************/
 enum {
     ROLL = 0,
     PITCH,
@@ -414,7 +414,7 @@ void batteryInit(void);
 uint16_t batteryAdcToVoltage(uint16_t src);
 int32_t currentSensorToCentiamps(uint16_t src);
 void ACC_getADC(void);
-int Baro_update(void);
+bool Baro_update(void);
 void Gyro_getADC(void);
 void Mag_init(void);
 int Mag_update(void);

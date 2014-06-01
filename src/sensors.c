@@ -57,7 +57,7 @@ bool sensorsAutodetect(void)
 //        case ACC_MPU6050: // MPU6050
 //            if (haveMpu6k) {
 //                mpu6050Detect(&acc, &gyro, mcfg.gyro_lpf, &core.mpu6050_scale); // yes, i'm rerunning it again.  re-fill acc struct
-                accHardware = ACC_MPU6050;
+    accHardware = ACC_MPU6050;
 //                if (mcfg.acc_hardware == ACC_MPU6050)
 //                    break;
 //            }
@@ -125,40 +125,38 @@ bool sensorsAutodetect(void)
 //
 //    return true;
 
+    if (feature(FEATURE_I2C)) {
+        //        mpu6050Detect(&acc, &gyro, mcfg.gyro_lpf, &core.mpu6050_scale);
 
-        if (feature(FEATURE_I2C)) {
-    //        mpu6050Detect(&acc, &gyro, mcfg.gyro_lpf, &core.mpu6050_scale);
+        if (!hmc5883lDetectI2c(&mag))
+            sensorsClear(SENSOR_MAG);
 
-            if (!hmc5883lDetectI2c(&mag))
-                sensorsClear(SENSOR_MAG);
+        if (!bmp085Detect(&baro))
+            sensorsClear(SENSOR_BARO);
+    } else {
+        if (!hmc5983DetectSpi(&mag, mcfg.mag_align))
+            sensorsClear(SENSOR_MAG);
 
-            if (!bmp085Detect(&baro))
-                sensorsClear(SENSOR_BARO);
-        } else {
-            if (!hmc5983DetectSpi(&mag, mcfg.mag_align))
-                sensorsClear(SENSOR_MAG);
+        if (!ms5611DetectSpi(&baro))
+            sensorsClear(SENSOR_BARO);
+    }
 
-            if (!ms5611DetectSpi(&baro))
-                sensorsClear(SENSOR_BARO);
-        }
+    if (!mpu6000DetectSpi(&acc, &gyro, mcfg.gyro_lpf, &core.mpu6050_scale)) {
+        sensorsClear(SENSOR_ACC);
+        sensorsClear(SENSOR_GYRO);
+    }
 
-        if (!mpu6000DetectSpi(&acc, &gyro, mcfg.gyro_lpf, &core.mpu6050_scale)) {
-            sensorsClear(SENSOR_ACC);
-            sensorsClear(SENSOR_GYRO);
-        }
+    // Now time to init things, acc first
+    if (sensors(SENSOR_ACC))
+        acc.init(mcfg.acc_align);
 
-        // Now time to init things, acc first
-        if (sensors(SENSOR_ACC))
-            acc.init(mcfg.acc_align);
+    if (sensors(SENSOR_GYRO))
+        gyro.init(mcfg.gyro_align);
 
-        if (sensors(SENSOR_GYRO))
-            gyro.init(mcfg.gyro_align);
+    if (sensors(SENSOR_MAG))
+        Mag_init();
 
-
-        if (sensors(SENSOR_MAG))
-            Mag_init();
-
-        return true;
+    return true;
 }
 
 uint16_t batteryAdcToVoltage(uint16_t src)
@@ -294,10 +292,10 @@ void Baro_Common(void)
     baroHistIdx = indexplus1;
 }
 
-int Baro_update(void)
+bool Baro_update(void)
 {
     static uint32_t baroDeadline = 0;
-    static int state = 0;
+    static bool state = 0;
 
     if ((int32_t)(currentTime - baroDeadline) < 0)
         return 0;
@@ -305,25 +303,23 @@ int Baro_update(void)
     baroDeadline = currentTime;
 
     if (state) {
+        baro.get_ut();
+        baro.start_up();
+        baroDeadline += baro.up_delay;
+        Baro_Common();
+        state = 0;
+    } else {
         baro.get_up();
         baro.start_ut();
         baroDeadline += baro.ut_delay;
         baro.calculate(&baroPressure, &baroTemperature);
-        state = 0;
-        return 2;
-    } else {
-        baro.get_ut();
-        baro.start_up();
-        Baro_Common();
         state = 1;
-        baroDeadline += baro.up_delay;
-        return 1;
     }
+    return state;
 }
 #endif /* BARO */
 
-typedef struct stdev_t
-{
+typedef struct stdev_t {
     float m_oldM, m_newM, m_oldS, m_newS;
     int m_n;
 } stdev_t;
@@ -410,9 +406,11 @@ static uint8_t magInit = 0;
 void Mag_init(void)
 {
     // initialize and calibration. turn on led during mag calibration (calibration routine blinks it)
-    LED1_ON;
+    LED1_ON
+    ;
     mag.init(mcfg.mag_align);
-    LED1_OFF;
+    LED1_OFF
+    ;
     magInit = 1;
 }
 
@@ -448,7 +446,8 @@ int Mag_update(void)
 
     if (tCal != 0) {
         if ((t - tCal) < 30000000) {    // 30s: you have 30s to turn the multi in all directions
-            LED0_TOGGLE;
+            LED0_TOGGLE
+            ;
             for (axis = 0; axis < 3; axis++) {
                 if (magADC[axis] < magZeroTempMin[axis])
                     magZeroTempMin[axis] = magADC[axis];

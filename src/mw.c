@@ -795,15 +795,10 @@ void loop(void)
             taskOrder++;
 #ifdef BARO
             if (sensors(SENSOR_BARO) && Baro_update())
-                break;
+                getEstimatedAltitude();
+            break;
 #endif
         case 2:
-            taskOrder++;
-#ifdef BARO
-            if (sensors(SENSOR_BARO) && getEstimatedAltitude())
-                break;
-#endif
-        case 3:
             // if GPS feature is enabled, gpsThread() will be called at some intervals to check for stuck
             // hardware, wrong baud rates, init GPS if needed, etc. Don't use SENSOR_GPS here as gpsThread() can and will
             // change this based on available hardware
@@ -812,7 +807,7 @@ void loop(void)
                 gpsThread();
                 break;
             }
-        case 4:
+        case 3:
             taskOrder = 0;
 #ifdef SONAR
             if (sensors(SENSOR_SONAR)) {
