@@ -9,8 +9,8 @@ these things work and are tested
 * serial rx : spketrum sat
 * ppm rx
 * usb cli/msp
-* bluetooth/433mhz msp on core.telemport 
-* gps nmea (rx)
+* bluetooth/433mhz msp on telemport 
+* gps nmea (rx) on telemport , rc pin
 * baro5611 spi 
 * mag5983 spi
 * mpu6050 spi
@@ -19,16 +19,22 @@ these things work and are tested
 ##Test Me##
 these things need to be tested
 
+* buzzer
 * sbus 
 * sumd
 * gps ublox (rx/tx)
 
 
 ##Fix Me##
-* i2c on rc 3/4 pin  , need configuration for offest rcpin
+
+* detect acc sensors range
+* headfree
+* led1 is not present
+* i2c on rc 3/4 pin, need configuration for offest rcpin
 * vbat monitor
-* softserial , non msp telemetry
+* softserial
+* non msp telemetry
 * startup.s will reboot to dfu with gcc , keil startup.s  will reset/reboot
-* systemReset , mag always work , mpu6050 work only 50% of time , can reproduce : always
-* make target=NAZE  .. worth fixing f103 build or remove thing for rev5 i2c ?
+* sensors resest , mag always work , mpu6050 work only 50% of time , can reproduce : always
+* build make target=NAZE  .. worth fixing f103 build or remove thing for rev5 i2c ?
 * all the things
