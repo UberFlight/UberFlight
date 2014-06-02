@@ -25,11 +25,10 @@ these things need to be tested
 
 
 ##Fix Me##
-* i2c on rc 3/4 pin 
-* telemetry uart , dont work , but gps do work on both uart
+* i2c on rc 3/4 pin  , need configuration for offest rcpin
+* vbat monitor
+* softserial , non msp telemetry
 * startup.s will reboot to dfu with gcc , keil startup.s  will reset/reboot
 * systemReset , mag always work , mpu6050 work only 50% of time , can reproduce : always
 * make target=NAZE  .. worth fixing f103 build or remove thing for rev5 i2c ?
-* vbat monitor
-* softserial , non msp telemetry
 * all the things
