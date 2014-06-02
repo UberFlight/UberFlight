@@ -354,7 +354,6 @@ extern int32_t errorAltitudeI;
 extern int32_t BaroPID;
 extern int32_t vario;
 extern int16_t throttleAngleCorrection;
-extern int16_t headFreeModeHold;
 extern int16_t heading, magHold;
 extern int16_t motor[MAX_MOTORS];
 extern int16_t servo[MAX_SERVOS];

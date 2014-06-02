@@ -5,7 +5,7 @@ uint16_t calibratingA = 0;      // the calibration is done is the main loop. Cal
 uint16_t calibratingB = 0;      // baro calibration = get new ground pressure value
 uint16_t calibratingG = 0;
 uint16_t acc_1G = 256;          // this is the 1G measured acceleration.
-int16_t heading, magHold, magInit = 0;
+int16_t heading, magInit = 0;
 
 extern uint16_t InflightcalibratingA;
 extern bool AccInflightCalibrationMeasurementDone;
