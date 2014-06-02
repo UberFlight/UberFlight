@@ -98,7 +98,7 @@ void annexCode(void)
     static uint32_t mAhdrawnRaw = 0;
     static uint32_t vbatCycleTime = 0;
 
-    int i;
+//    int i;
 
     // PITCH & ROLL only dynamic PID adjustemnt,  depending on throttle value
     if (rcData[THROTTLE] < cfg.tpa_breakpoint) {
@@ -217,11 +217,12 @@ void annexCode(void)
         }
     }
 
-    // TODO fixme  serialCom mainport usb
-    serialCom();
+    serialCom(core.mainport);
 
     if (!cliMode && feature(FEATURE_TELEMETRY)) {
-        handleTelemetry();
+        // TODO fixme telemtry provider
+//        handleTelemetry();
+        serialCom(core.telemport);
     }
 
     if (sensors(SENSOR_GPS)) {

@@ -2,7 +2,6 @@
 #include "mw.h"
 
 #include "cli.h"
-//#include "telemetry_common.h"
 
 // Multiwii Serial Protocol 0
 #define MSP_VERSION              0
@@ -69,9 +68,29 @@ struct box_t {
     const uint8_t boxIndex;         // this is from boxnames enum
     const char *boxName;            // GUI-readable box name
     const uint8_t permanentId;      //
-} boxes[] = { { BOXARM, "ARM;", 0 }, { BOXANGLE, "ANGLE;", 1 }, { BOXHORIZON, "HORIZON;", 2 }, { BOXBARO, "BARO;", 3 }, { BOXVARIO, "VARIO;", 4 }, { BOXMAG, "MAG;", 5 }, { BOXHEADFREE, "HEADFREE;", 6 }, { BOXHEADADJ, "HEADADJ;", 7 }, { BOXCAMSTAB, "CAMSTAB;", 8 }, { BOXCAMTRIG,
-        "CAMTRIG;", 9 }, { BOXGPSHOME, "GPS HOME;", 10 }, { BOXGPSHOLD, "GPS HOLD;", 11 }, { BOXPASSTHRU, "PASSTHRU;", 12 }, { BOXBEEPERON, "BEEPER;", 13 }, { BOXLEDMAX, "LEDMAX;", 14 }, { BOXLEDLOW, "LEDLOW;", 15 }, { BOXLLIGHTS, "LLIGHTS;", 16 }, { BOXCALIB, "CALIB;", 17 }, {
-        BOXGOV, "GOVERNOR;", 18 }, { BOXOSD, "OSD SW;", 19 }, { BOXTELEMETRY, "TELEMETRY;", 20 }, { CHECKBOXITEMS, NULL, 0xFF } };
+} boxes[] = {
+        { BOXARM, "ARM;", 0 },
+        { BOXANGLE, "ANGLE;", 1 },
+        { BOXHORIZON, "HORIZON;", 2 },
+        { BOXBARO, "BARO;", 3 },
+        { BOXVARIO, "VARIO;", 4 },
+        { BOXMAG, "MAG;", 5 },
+        { BOXHEADFREE, "HEADFREE;", 6 },
+        { BOXHEADADJ, "HEADADJ;", 7 },
+        { BOXCAMSTAB, "CAMSTAB;", 8 },
+        { BOXCAMTRIG, "CAMTRIG;", 9 },
+        { BOXGPSHOME, "GPS HOME;", 10 },
+        { BOXGPSHOLD, "GPS HOLD;", 11 },
+        { BOXPASSTHRU, "PASSTHRU;", 12 },
+        { BOXBEEPERON, "BEEPER;", 13 },
+        { BOXLEDMAX, "LEDMAX;", 14 },
+        { BOXLEDLOW, "LEDLOW;", 15 },
+        { BOXLLIGHTS, "LLIGHTS;", 16 },
+        { BOXCALIB, "CALIB;", 17 },
+        { BOXGOV, "GOVERNOR;", 18 },
+        { BOXOSD, "OSD SW;", 19 },
+        { BOXTELEMETRY, "TELEMETRY;", 20 },
+        { CHECKBOXITEMS, NULL, 0xFF } };
 
 // this is calculated at startup based on enabled features.
 static uint8_t availableBoxes[CHECKBOXITEMS];
@@ -91,119 +110,102 @@ static const char pidnames[] = "ROLL;"
         "MAG;"
         "VEL;";
 
-typedef struct mwproto {
-    serialPort_t *port;
-    uint8_t checksum, indRX, inBuf[INBUF_SIZE];
-    uint8_t cmdMSP;
-    uint8_t offset;
-    uint8_t dataSize;
-    enum _serial_state {
-        IDLE,
-        HEADER_START,
-        HEADER_M,
-        HEADER_ARROW,
-        HEADER_SIZE,
-        HEADER_CMD,
-    } c_state;
-} mwproto_t;
+static uint8_t checksum, indRX, inBuf[INBUF_SIZE];
+static uint8_t cmdMSP;
 
-//3 serial instances, first is main port, second and third possible softserial.
-#define MAX_MSP_INSTANCES  3
-mwproto_t serialinstances[MAX_MSP_INSTANCES];
-
-void serialize32(mwproto_t *instance, uint32_t a)
+void serialize32(serialPort_t *telemport, uint32_t a)
 {
     static uint8_t t;
     t = a;
-    serialWrite(instance->port, t);
-    instance->checksum ^= t;
+    serialWrite(telemport, t);
+    checksum ^= t;
     t = a >> 8;
-    serialWrite(instance->port, t);
-    instance->checksum ^= t;
+    serialWrite(telemport, t);
+    checksum ^= t;
     t = a >> 16;
-    serialWrite(instance->port, t);
-    instance->checksum ^= t;
+    serialWrite(telemport, t);
+    checksum ^= t;
     t = a >> 24;
-    serialWrite(instance->port, t);
-    instance->checksum ^= t;
+    serialWrite(telemport, t);
+    checksum ^= t;
 }
 
-void serialize16(mwproto_t *instance, int16_t a)
+void serialize16(serialPort_t *telemport, int16_t a)
 {
     static uint8_t t;
     t = a;
-    serialWrite(instance->port, t);
-    instance->checksum ^= t;
+    serialWrite(telemport, t);
+    checksum ^= t;
     t = a >> 8 & 0xff;
-    serialWrite(instance->port, t);
-    instance->checksum ^= t;
+    serialWrite(telemport, t);
+    checksum ^= t;
 }
 
-void serialize8(mwproto_t *instance, uint8_t a)
+void serialize8(serialPort_t *telemport, uint8_t a)
 {
-    serialWrite(instance->port, a);
-    instance->checksum ^= a;
+    serialWrite(telemport, a);
+    checksum ^= a;
 }
 
-uint8_t read8(mwproto_t *instance)
+uint8_t read8(void)
 {
-    return instance->inBuf[instance->indRX++] & 0xff;
+    return inBuf[indRX++] & 0xff;
 }
 
-uint16_t read16(mwproto_t *instance)
+uint16_t read16(void)
 {
-    uint16_t t = read8(instance);
-    t += (uint16_t)read8(instance) << 8;
+    uint16_t t = read8();
+    t += (uint16_t)read8() << 8;
     return t;
 }
 
-uint32_t read32(mwproto_t *instance)
+uint32_t read32(void)
 {
-    uint32_t t = read16(instance);
-    t += (uint32_t)read16(instance) << 16;
+    uint32_t t = read16();
+    t += (uint32_t)read16() << 16;
     return t;
 }
 
-void headSerialResponse(mwproto_t *instance, uint8_t err, uint8_t s)
+void headSerialResponse(serialPort_t *telemport, uint8_t err, uint8_t s)
 {
-    serialize8(instance, '$');
-    serialize8(instance, 'M');
-    serialize8(instance, err ? '!' : '>');
-    instance->checksum = 0;               // start calculating a new checksum
-    serialize8(instance, s);
-    serialize8(instance, instance->cmdMSP);
+    serialize8(telemport, '$');
+    serialize8(telemport, 'M');
+    serialize8(telemport, err ? '!' : '>');
+    checksum = 0;               // start calculating a new checksum
+    serialize8(telemport, s);
+    serialize8(telemport, cmdMSP);
 }
 
-void headSerialReply(mwproto_t *instance, uint8_t s)
+void headSerialReply(serialPort_t *telemport, uint8_t s)
 {
-    headSerialResponse(instance, 0, s);
+    headSerialResponse(telemport, 0, s);
 }
 
-void headSerialError(mwproto_t *instance, uint8_t s)
+void headSerialError(serialPort_t *telemport, uint8_t s)
 {
-    headSerialResponse(instance, 1, s);
+    headSerialResponse(telemport, 1, s);
 }
 
-void tailSerialReply(mwproto_t *instance)
+void tailSerialReply(serialPort_t *telemport)
 {
-    serialize8(instance, instance->checksum);
+    serialize8(telemport, checksum);
 }
 
-void s_struct(mwproto_t *instance, uint8_t *cb, uint8_t siz)
+void s_struct(serialPort_t *telemport, uint8_t *cb, uint8_t siz)
 {
-    headSerialReply(instance, siz);
+    headSerialReply(telemport, siz);
     while (siz--)
-        serialize8(instance, *cb++);
+        serialize8(telemport, *cb++);
 }
 
-void serializeNames(mwproto_t *instance, const char *s)
+void serializeNames(serialPort_t *telemport, const char *s)
 {
     const char *c;
     for (c = s; *c; c++)
-        serialize8(instance, *c);
+        serialize8(telemport, *c);
 }
 
-void serializeBoxNamesReply(mwproto_t *instance)
+void serializeBoxNamesReply(serialPort_t *telemport)
 {
     int i, idx, j, flag = 1, count = 0, len;
 
@@ -217,12 +219,12 @@ void serializeBoxNamesReply(mwproto_t *instance)
             count += len;
         } else {
             for (j = 0; j < len; j++)
-                serialize8(instance, boxes[idx].boxName[j]);
+                serialize8(telemport, boxes[idx].boxName[j]);
         }
     }
 
     if (flag) {
-        headSerialReply(instance, count);
+        headSerialReply(telemport, count);
         flag = 0;
         goto reset;
     }
@@ -230,170 +232,145 @@ void serializeBoxNamesReply(mwproto_t *instance)
 
 void mspInit(void)
 {
-    int idx;
-
-    for (idx = 0; idx < MAX_MSP_INSTANCES; idx++) {
-        serialinstances[idx].c_state = IDLE;
-        serialinstances[idx].port = 0;
-        serialinstances[idx].offset = 0;
-        serialinstances[idx].dataSize = 0;
-    }
-    serialinstances[0].port = core.mainport;
-
-    if (feature(FEATURE_TELEMETRY) && (mcfg.telemetry_provider == TELEMETRY_PROVIDER_MSP)) {
-        serialinstances[1].port = core.telemport;
-    }
-
-//
-//    // Only open the softserial ports if loopback is not defined, and FEATURE_SOFTSERIAL is enabled
-//#ifndef SOFTSERIAL_LOOPBACK
-//    if (feature(FEATURE_SOFTSERIAL)) {
-//        // Don't bind to a softserial port that is being used by telemetry.
-//        if (mcfg.telemetry_port != TELEMETRY_PORT_SOFTSERIAL_1)
-//            serialinstances[1].port = (serialPort_t*)&(softSerialPorts[0]);
-//        if (mcfg.telemetry_port != TELEMETRY_PORT_SOFTSERIAL_2)
-//            serialinstances[2].port = (serialPort_t*)&(softSerialPorts[1]);
-//    }
-//#endif
+    numberBoxItems = 0;
 
     // calculate used boxes based on features and fill availableBoxes[] array
     memset(availableBoxes, 0xFF, sizeof(availableBoxes));
 
-    idx = 0;
-    availableBoxes[idx++] = BOXARM;
+    availableBoxes[numberBoxItems++] = BOXARM;
     if (sensors(SENSOR_ACC)) {
-        availableBoxes[idx++] = BOXANGLE;
-        availableBoxes[idx++] = BOXHORIZON;
+        availableBoxes[numberBoxItems++] = BOXANGLE;
+        availableBoxes[numberBoxItems++] = BOXHORIZON;
     }
     if (sensors(SENSOR_BARO)) {
-        availableBoxes[idx++] = BOXBARO;
+        availableBoxes[numberBoxItems++] = BOXBARO;
         if (feature(FEATURE_VARIO))
-            availableBoxes[idx++] = BOXVARIO;
+            availableBoxes[numberBoxItems++] = BOXVARIO;
     }
     if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
-        availableBoxes[idx++] = BOXMAG;
-        availableBoxes[idx++] = BOXHEADFREE;
-        availableBoxes[idx++] = BOXHEADADJ;
+        availableBoxes[numberBoxItems++] = BOXMAG;
+        availableBoxes[numberBoxItems++] = BOXHEADFREE;
+        availableBoxes[numberBoxItems++] = BOXHEADADJ;
     }
     if (feature(FEATURE_SERVO_TILT))
-        availableBoxes[idx++] = BOXCAMSTAB;
+        availableBoxes[numberBoxItems++] = BOXCAMSTAB;
     if (feature(FEATURE_GPS)) {
-        availableBoxes[idx++] = BOXGPSHOME;
-        availableBoxes[idx++] = BOXGPSHOLD;
+        availableBoxes[numberBoxItems++] = BOXGPSHOME;
+        availableBoxes[numberBoxItems++] = BOXGPSHOLD;
     }
     if (mcfg.mixerConfiguration == MULTITYPE_FLYING_WING || mcfg.mixerConfiguration == MULTITYPE_AIRPLANE)
-        availableBoxes[idx++] = BOXPASSTHRU;
-    availableBoxes[idx++] = BOXBEEPERON;
+        availableBoxes[numberBoxItems++] = BOXPASSTHRU;
+    availableBoxes[numberBoxItems++] = BOXBEEPERON;
     if (feature(FEATURE_INFLIGHT_ACC_CAL))
-        availableBoxes[idx++] = BOXCALIB;
-    availableBoxes[idx++] = BOXOSD;
+        availableBoxes[numberBoxItems++] = BOXCALIB;
+    availableBoxes[numberBoxItems++] = BOXOSD;
     if (feature(FEATURE_TELEMETRY && mcfg.telemetry_switch))
-        availableBoxes[idx++] = BOXTELEMETRY;
-    numberBoxItems = idx;
+        availableBoxes[numberBoxItems++] = BOXTELEMETRY;
+
 }
 
-static void evaluateCommand(mwproto_t *instance)
+static void evaluateCommand(serialPort_t *telemport)
 {
     uint32_t i, tmp, junk;
     uint8_t wp_no;
     int32_t lat = 0, lon = 0, alt = 0;
 
-    switch (instance->cmdMSP) {
+    switch (cmdMSP) {
         case MSP_SET_RAW_RC:
             for (i = 0; i < 8; i++)
-                rcData[i] = read16(instance);
-            headSerialReply(instance, 0);
+                rcData[i] = read16();
+            headSerialReply(telemport, 0);
             mspFrameRecieve();
             break;
         case MSP_SET_ACC_TRIM:
-            cfg.angleTrim[PITCH] = read16(instance);
-            cfg.angleTrim[ROLL] = read16(instance);
-            headSerialReply(instance, 0);
+            cfg.angleTrim[PITCH] = read16();
+            cfg.angleTrim[ROLL] = read16();
+            headSerialReply(telemport, 0);
             break;
         case MSP_SET_RAW_GPS:
-            f.GPS_FIX = read8(instance);
-            GPS_numSat = read8(instance);
-            GPS_coord[LAT] = read32(instance);
-            GPS_coord[LON] = read32(instance);
-            GPS_altitude = read16(instance);
-            GPS_speed = read16(instance);
+            f.GPS_FIX = read8();
+            GPS_numSat = read8();
+            GPS_coord[LAT] = read32();
+            GPS_coord[LON] = read32();
+            GPS_altitude = read16();
+            GPS_speed = read16();
             GPS_update |= 2;        // New data signalisation to GPS functions
-            headSerialReply(instance, 0);
+            headSerialReply(telemport, 0);
             break;
         case MSP_SET_PID:
             for (i = 0; i < PIDITEMS; i++) {
-                cfg.P8[i] = read8(instance);
-                cfg.I8[i] = read8(instance);
-                cfg.D8[i] = read8(instance);
+                cfg.P8[i] = read8();
+                cfg.I8[i] = read8();
+                cfg.D8[i] = read8();
             }
-            headSerialReply(instance, 0);
+            headSerialReply(telemport, 0);
             break;
         case MSP_SET_BOX:
             for (i = 0; i < numberBoxItems; i++)
-                cfg.activate[availableBoxes[i]] = read16(instance);
-            headSerialReply(instance, 0);
+                cfg.activate[availableBoxes[i]] = read16();
+            headSerialReply(telemport, 0);
             break;
         case MSP_SET_RC_TUNING:
-            cfg.rcRate8 = read8(instance);
-            cfg.rcExpo8 = read8(instance);
-            cfg.rollPitchRate = read8(instance);
-            cfg.yawRate = read8(instance);
-            cfg.dynThrPID = read8(instance);
-            cfg.thrMid8 = read8(instance);
-            cfg.thrExpo8 = read8(instance);
-            headSerialReply(instance, 0);
+            cfg.rcRate8 = read8();
+            cfg.rcExpo8 = read8();
+            cfg.rollPitchRate = read8();
+            cfg.yawRate = read8();
+            cfg.dynThrPID = read8();
+            cfg.thrMid8 = read8();
+            cfg.thrExpo8 = read8();
+            headSerialReply(telemport, 0);
             break;
         case MSP_SET_MISC:
-            read16(instance); // powerfailmeter
-            mcfg.minthrottle = read16(instance);
-            mcfg.maxthrottle = read16(instance);
-            mcfg.mincommand = read16(instance);
-            cfg.failsafe_throttle = read16(instance);
-            read16(instance);
-            read32(instance);
-            cfg.mag_declination = read16(instance) * 10;
-            mcfg.vbatscale = read8(instance);           // actual vbatscale as intended
-            mcfg.vbatmincellvoltage = read8(instance);  // vbatlevel_warn1 in MWC2.3 GUI
-            mcfg.vbatmaxcellvoltage = read8(instance);  // vbatlevel_warn2 in MWC2.3 GUI
-            read8(instance);                            // vbatlevel_crit (unused)
-            headSerialReply(instance, 0);
+            read16(); // powerfailmeter
+            mcfg.minthrottle = read16();
+            mcfg.maxthrottle = read16();
+            mcfg.mincommand = read16();
+            cfg.failsafe_throttle = read16();
+            read16();
+            read32();
+            cfg.mag_declination = read16() * 10;
+            mcfg.vbatscale = read8();           // actual vbatscale as intended
+            mcfg.vbatmincellvoltage = read8();  // vbatlevel_warn1 in MWC2.3 GUI
+            mcfg.vbatmaxcellvoltage = read8();  // vbatlevel_warn2 in MWC2.3 GUI
+            read8();                            // vbatlevel_crit (unused)
+            headSerialReply(telemport, 0);
             break;
         case MSP_SET_MOTOR:
             for (i = 0; i < 8; i++)
-                motor_disarmed[i] = read16(instance);
-            headSerialReply(instance, 0);
+                motor_disarmed[i] = read16();
+            headSerialReply(telemport, 0);
             break;
         case MSP_SELECT_SETTING:
             if (!f.ARMED) {
-                mcfg.current_profile = read8(instance);
+                mcfg.current_profile = read8();
                 if (mcfg.current_profile > 2)
                     mcfg.current_profile = 0;
                 // this writes new profile index and re-reads it
                 writeConfig(0, false);
             }
-            headSerialReply(instance, 0);
+            headSerialReply(telemport, 0);
             break;
         case MSP_SET_HEAD:
-            magHold = read16(instance);
-            headSerialReply(instance, 0);
+            magHold = read16();
+            headSerialReply(telemport, 0);
             break;
         case MSP_IDENT:
-            headSerialReply(instance, 7);
-            serialize8(instance, VERSION);                // multiwii version
-            serialize8(instance, mcfg.mixerConfiguration); // type of multicopter
-            serialize8(instance, MSP_VERSION);            // MultiWii Serial Protocol Version
-            serialize32(instance, CAP_PLATFORM_32BIT | CAP_DYNBALANCE | (mcfg.flaps_speed ? CAP_FLAPS : 0));        // "capability"
+            headSerialReply(telemport, 7);
+            serialize8(telemport, VERSION);                // multiwii version
+            serialize8(telemport, mcfg.mixerConfiguration); // type of multicopter
+            serialize8(telemport, MSP_VERSION);            // MultiWii Serial Protocol Version
+            serialize32(telemport, CAP_PLATFORM_32BIT | CAP_DYNBALANCE | (mcfg.flaps_speed ? CAP_FLAPS : 0));        // "capability"
             break;
         case MSP_STATUS:
-            headSerialReply(instance, 11);
-            serialize16(instance, cycleTime);
+            headSerialReply(telemport, 11);
+            serialize16(telemport, cycleTime);
 #if defined(NAZEPRO)
-            serialize16(instance, spiGetErrorCounter(SPI2));
+            serialize16(telemport,spiGetErrorCounter(SPI2));
 #endif
 #if defined(NAZE)
-            serialize16(instance, i2cGetErrorCounter(I2C2));
+            serialize16(telemport,i2cGetErrorCounter(I2C2));
 #endif
-            serialize16(instance, sensors(SENSOR_ACC) | sensors(SENSOR_BARO) << 1 | sensors(SENSOR_MAG) << 2 | sensors(SENSOR_GPS) << 3 | sensors(SENSOR_SONAR) << 4);
+            serialize16(telemport, sensors(SENSOR_ACC) | sensors(SENSOR_BARO) << 1 | sensors(SENSOR_MAG) << 2 | sensors(SENSOR_GPS) << 3 | sensors(SENSOR_SONAR) << 4);
             // OK, so you waste all the fucking time to have BOXNAMES and BOXINDEXES etc, and then you go ahead and serialize enabled shit simply by stuffing all
             // the bits in order, instead of setting the enabled bits based on BOXINDEX. WHERE IS THE FUCKING LOGIC IN THIS, FUCKWADS.
             // Serialize the boxes in the order we delivered them, until multiwii retards fix their shit
@@ -406,146 +383,146 @@ static void evaluateCommand(mwproto_t *instance)
                 if (flag)
                     junk |= 1 << i;
             }
-            serialize32(instance, junk);
-            serialize8(instance, mcfg.current_profile);
+            serialize32(telemport, junk);
+            serialize8(telemport, mcfg.current_profile);
             break;
         case MSP_RAW_IMU:
-            headSerialReply(instance, 18);
+            headSerialReply(telemport, 18);
             // Retarded hack until multiwiidorks start using real units for sensor data
             if (acc_1G > 1024) {
                 for (i = 0; i < 3; i++)
-                    serialize16(instance, accSmooth[i] / 8);
+                    serialize16(telemport, accSmooth[i] / 8);
             } else {
                 for (i = 0; i < 3; i++)
-                    serialize16(instance, accSmooth[i]);
+                    serialize16(telemport, accSmooth[i]);
             }
             for (i = 0; i < 3; i++)
-                serialize16(instance, gyroData[i]);
+                serialize16(telemport, gyroData[i]);
             for (i = 0; i < 3; i++)
-                serialize16(instance, magADC[i]);
+                serialize16(telemport, magADC[i]);
             break;
         case MSP_SERVO:
-            s_struct(instance, (uint8_t *)&servo, 16);
+            s_struct(telemport, (uint8_t *)&servo, 16);
             break;
         case MSP_SERVO_CONF:
-            headSerialReply(instance, 56);
+            headSerialReply(telemport, 56);
             for (i = 0; i < MAX_SERVOS; i++) {
-                serialize16(instance, cfg.servoConf[i].min);
-                serialize16(instance, cfg.servoConf[i].max);
-                serialize16(instance, cfg.servoConf[i].middle);
-                serialize8(instance, cfg.servoConf[i].rate);
+                serialize16(telemport, cfg.servoConf[i].min);
+                serialize16(telemport, cfg.servoConf[i].max);
+                serialize16(telemport, cfg.servoConf[i].middle);
+                serialize8(telemport, cfg.servoConf[i].rate);
             }
             break;
         case MSP_SET_SERVO_CONF:
-            headSerialReply(instance, 0);
+            headSerialReply(telemport, 0);
             for (i = 0; i < MAX_SERVOS; i++) {
-                cfg.servoConf[i].min = read16(instance);
-                cfg.servoConf[i].max = read16(instance);
-                cfg.servoConf[i].middle = read16(instance);
-                cfg.servoConf[i].rate = read8(instance);
+                cfg.servoConf[i].min = read16();
+                cfg.servoConf[i].max = read16();
+                cfg.servoConf[i].middle = read16();
+                cfg.servoConf[i].rate = read8();
             }
             break;
         case MSP_MOTOR:
-            s_struct(instance, (uint8_t *)motor, 16);
+            s_struct(telemport, (uint8_t *)motor, 16);
             break;
         case MSP_RC:
-            headSerialReply(instance, 16);
+            headSerialReply(telemport, 16);
             for (i = 0; i < 8; i++)
-                serialize16(instance, rcData[i]);
+                serialize16(telemport, rcData[i]);
             break;
         case MSP_RAW_GPS:
-            headSerialReply(instance, 16);
-            serialize8(instance, f.GPS_FIX);
-            serialize8(instance, GPS_numSat);
-            serialize32(instance, GPS_coord[LAT]);
-            serialize32(instance, GPS_coord[LON]);
-            serialize16(instance, GPS_altitude);
-            serialize16(instance, GPS_speed);
-            serialize16(instance, GPS_ground_course);
+            headSerialReply(telemport, 16);
+            serialize8(telemport, f.GPS_FIX);
+            serialize8(telemport, GPS_numSat);
+            serialize32(telemport, GPS_coord[LAT]);
+            serialize32(telemport, GPS_coord[LON]);
+            serialize16(telemport, GPS_altitude);
+            serialize16(telemport, GPS_speed);
+            serialize16(telemport, GPS_ground_course);
             break;
         case MSP_COMP_GPS:
-            headSerialReply(instance, 5);
-            serialize16(instance, GPS_distanceToHome);
-            serialize16(instance, GPS_directionToHome);
-            serialize8(instance, GPS_update & 1);
+            headSerialReply(telemport, 5);
+            serialize16(telemport, GPS_distanceToHome);
+            serialize16(telemport, GPS_directionToHome);
+            serialize8(telemport, GPS_update & 1);
             break;
         case MSP_ATTITUDE:
-            headSerialReply(instance, 6);
+            headSerialReply(telemport, 6);
             for (i = 0; i < 2; i++)
-                serialize16(instance, angle[i]);
-            serialize16(instance, heading);
+                serialize16(telemport, angle[i]);
+            serialize16(telemport, heading);
             break;
         case MSP_ALTITUDE:
-            headSerialReply(instance, 6);
-            serialize32(instance, EstAlt);
-            serialize16(instance, vario);
+            headSerialReply(telemport, 6);
+            serialize32(telemport, EstAlt);
+            serialize16(telemport, vario);
             break;
         case MSP_ANALOG:
-            headSerialReply(instance, 7);
-            serialize8(instance, vbat);
-            serialize16(instance, 0); // power meter trash
-            serialize16(instance, rssi);
-            serialize16(instance, 0); // amperage
+            headSerialReply(telemport, 7);
+            serialize8(telemport, vbat);
+            serialize16(telemport, 0); // power meter trash
+            serialize16(telemport, rssi);
+            serialize16(telemport, 0); // amperage
             break;
         case MSP_RC_TUNING:
-            headSerialReply(instance, 7);
-            serialize8(instance, cfg.rcRate8);
-            serialize8(instance, cfg.rcExpo8);
-            serialize8(instance, cfg.rollPitchRate);
-            serialize8(instance, cfg.yawRate);
-            serialize8(instance, cfg.dynThrPID);
-            serialize8(instance, cfg.thrMid8);
-            serialize8(instance, cfg.thrExpo8);
+            headSerialReply(telemport, 7);
+            serialize8(telemport, cfg.rcRate8);
+            serialize8(telemport, cfg.rcExpo8);
+            serialize8(telemport, cfg.rollPitchRate);
+            serialize8(telemport, cfg.yawRate);
+            serialize8(telemport, cfg.dynThrPID);
+            serialize8(telemport, cfg.thrMid8);
+            serialize8(telemport, cfg.thrExpo8);
             break;
         case MSP_PID:
-            headSerialReply(instance, 3 * PIDITEMS);
+            headSerialReply(telemport, 3 * PIDITEMS);
             for (i = 0; i < PIDITEMS; i++) {
-                serialize8(instance, cfg.P8[i]);
-                serialize8(instance, cfg.I8[i]);
-                serialize8(instance, cfg.D8[i]);
+                serialize8(telemport, cfg.P8[i]);
+                serialize8(telemport, cfg.I8[i]);
+                serialize8(telemport, cfg.D8[i]);
             }
             break;
         case MSP_PIDNAMES:
-            headSerialReply(instance, sizeof(pidnames) - 1);
-            serializeNames(instance, pidnames);
+            headSerialReply(telemport, sizeof(pidnames) - 1);
+            serializeNames(telemport, pidnames);
             break;
         case MSP_BOX:
-            headSerialReply(instance, 2 * numberBoxItems);
+            headSerialReply(telemport, 2 * numberBoxItems);
             for (i = 0; i < numberBoxItems; i++)
-                serialize16(instance, cfg.activate[availableBoxes[i]]);
+                serialize16(telemport, cfg.activate[availableBoxes[i]]);
             break;
         case MSP_BOXNAMES:
-            // headSerialReply(sizeof(boxnames) - 1);
-            serializeBoxNamesReply(instance);
+            // headSerialReply(telemport,sizeof(boxnames) - 1);
+            serializeBoxNamesReply(telemport);
             break;
         case MSP_BOXIDS:
-            headSerialReply(instance, numberBoxItems);
+            headSerialReply(telemport, numberBoxItems);
             for (i = 0; i < numberBoxItems; i++)
-                serialize8(instance, availableBoxes[i]);
+                serialize8(telemport, availableBoxes[i]);
             break;
         case MSP_MISC:
-            headSerialReply(instance, 2 * 6 + 4 + 2 + 4);
-            serialize16(instance, 0); // intPowerTrigger1 (aka useless trash)
-            serialize16(instance, mcfg.minthrottle);
-            serialize16(instance, mcfg.maxthrottle);
-            serialize16(instance, mcfg.mincommand);
-            serialize16(instance, cfg.failsafe_throttle);
-            serialize16(instance, 0); // plog useless shit
-            serialize32(instance, 0); // plog useless shit
-            serialize16(instance, cfg.mag_declination / 10); // TODO check this shit
-            serialize8(instance, mcfg.vbatscale);
-            serialize8(instance, mcfg.vbatmincellvoltage);
-            serialize8(instance, mcfg.vbatmaxcellvoltage);
-            serialize8(instance, 0);
+            headSerialReply(telemport, 2 * 6 + 4 + 2 + 4);
+            serialize16(telemport, 0); // intPowerTrigger1 (aka useless trash)
+            serialize16(telemport, mcfg.minthrottle);
+            serialize16(telemport, mcfg.maxthrottle);
+            serialize16(telemport, mcfg.mincommand);
+            serialize16(telemport, cfg.failsafe_throttle);
+            serialize16(telemport, 0); // plog useless shit
+            serialize32(telemport, 0); // plog useless shit
+            serialize16(telemport, cfg.mag_declination / 10); // TODO check this shit
+            serialize8(telemport, mcfg.vbatscale);
+            serialize8(telemport, mcfg.vbatmincellvoltage);
+            serialize8(telemport, mcfg.vbatmaxcellvoltage);
+            serialize8(telemport, 0);
             break;
         case MSP_MOTOR_PINS:
-            headSerialReply(instance, 8);
+            headSerialReply(telemport, 8);
             for (i = 0; i < 8; i++)
-                serialize8(instance, i + 1);
+                serialize8(telemport, i + 1);
             break;
         case MSP_WP:
-            wp_no = read8(instance);    // get the wp number
-            headSerialReply(instance, 18);
+            wp_no = read8();    // get the wp number
+            headSerialReply(telemport, 18);
             if (wp_no == 0) {
                 lat = GPS_home[LAT];
                 lon = GPS_home[LON];
@@ -553,22 +530,22 @@ static void evaluateCommand(mwproto_t *instance)
                 lat = GPS_hold[LAT];
                 lon = GPS_hold[LON];
             }
-            serialize8(instance, wp_no);
-            serialize32(instance, lat);
-            serialize32(instance, lon);
-            serialize32(instance, AltHold);           // altitude (cm) will come here -- temporary implementation to test feature with apps
-            serialize16(instance, 0);                 // heading  will come here (deg)
-            serialize16(instance, 0);                 // time to stay (ms) will come here
-            serialize8(instance, 0);                  // nav flag will come here
+            serialize8(telemport, wp_no);
+            serialize32(telemport, lat);
+            serialize32(telemport, lon);
+            serialize32(telemport, AltHold);           // altitude (cm) will come here -- temporary implementation to test feature with apps
+            serialize16(telemport, 0);                 // heading  will come here (deg)
+            serialize16(telemport, 0);                 // time to stay (ms) will come here
+            serialize8(telemport, 0);                  // nav flag will come here
             break;
         case MSP_SET_WP:
-            wp_no = read8(instance);    //get the wp number
-            lat = read32(instance);
-            lon = read32(instance);
-            alt = read32(instance);     // to set altitude (cm)
-            read16(instance);           // future: to set heading (deg)
-            read16(instance);           // future: to set time to stay (ms)
-            read8(instance);            // future: to set nav flag
+            wp_no = read8();    //get the wp number
+            lat = read32();
+            lon = read32();
+            alt = read32();     // to set altitude (cm)
+            read16();           // future: to set heading (deg)
+            read16();           // future: to set time to stay (ms)
+            read8();            // future: to set nav flag
             if (wp_no == 0) {
                 GPS_home[LAT] = lat;
                 GPS_home[LON] = lon;
@@ -584,130 +561,132 @@ static void evaluateCommand(mwproto_t *instance)
                 nav_mode = NAV_MODE_WP;
                 GPS_set_next_wp(&GPS_hold[LAT], &GPS_hold[LON]);
             }
-            headSerialReply(instance, 0);
+            headSerialReply(telemport, 0);
             break;
         case MSP_RESET_CONF:
             if (!f.ARMED)
                 checkFirstTime(true);
-            headSerialReply(instance, 0);
+            headSerialReply(telemport, 0);
             break;
         case MSP_ACC_CALIBRATION:
             if (!f.ARMED)
                 calibratingA = CALIBRATING_ACC_CYCLES;
-            headSerialReply(instance, 0);
+            headSerialReply(telemport, 0);
             break;
         case MSP_MAG_CALIBRATION:
             if (!f.ARMED)
                 f.CALIBRATE_MAG = 1;
-            headSerialReply(instance, 0);
+            headSerialReply(telemport, 0);
             break;
         case MSP_EEPROM_WRITE:
             if (f.ARMED) {
-                headSerialError(instance, 0);
+                headSerialError(telemport, 0);
             } else {
                 writeConfig(0, true);
-                headSerialReply(instance, 0);
+                headSerialReply(telemport, 0);
             }
             break;
         case MSP_DEBUG:
-            headSerialReply(instance, 8);
-            // output some useful QA statistics
+            headSerialReply(telemport, 8);
+            // make use of this crap, output some useful QA statistics
             debug[3] = ((HSE_VALUE / 1000000) * 1000) + (SystemCoreClock / 1000000);         // XX0YY [crystal clock : core clock]
             for (i = 0; i < 4; i++)
-                serialize16(instance, debug[i]);      // 4 variables are here for general monitoring purpose
+                serialize16(telemport, debug[i]);      // 4 variables are here for general monitoring purpose
             break;
 
             // Additional commands that are not compatible with MultiWii
         case MSP_ACC_TRIM:
-            headSerialReply(instance, 4);
-            serialize16(instance, cfg.angleTrim[PITCH]);
-            serialize16(instance, cfg.angleTrim[ROLL]);
+            headSerialReply(telemport, 4);
+            serialize16(telemport, cfg.angleTrim[PITCH]);
+            serialize16(telemport, cfg.angleTrim[ROLL]);
             break;
         case MSP_UID:
-            headSerialReply(instance, 12);
-            serialize32(instance, U_ID_0);
-            serialize32(instance, U_ID_1);
-            serialize32(instance, U_ID_2);
+            headSerialReply(telemport, 12);
+            serialize32(telemport, U_ID_0);
+            serialize32(telemport, U_ID_1);
+            serialize32(telemport, U_ID_2);
             break;
         case MSP_GPSSVINFO:
-            headSerialReply(instance, 1 + (GPS_numCh * 4));
-            serialize8(instance, GPS_numCh);
+            headSerialReply(telemport, 1 + (GPS_numCh * 4));
+            serialize8(telemport, GPS_numCh);
             for (i = 0; i < GPS_numCh; i++) {
-                serialize8(instance, GPS_svinfo_chn[i]);
-                serialize8(instance, GPS_svinfo_svid[i]);
-                serialize8(instance, GPS_svinfo_quality[i]);
-                serialize8(instance, GPS_svinfo_cno[i]);
+                serialize8(telemport, GPS_svinfo_chn[i]);
+                serialize8(telemport, GPS_svinfo_svid[i]);
+                serialize8(telemport, GPS_svinfo_quality[i]);
+                serialize8(telemport, GPS_svinfo_cno[i]);
             }
             break;
         default:                   // we do not know how to handle the (valid) message, indicate error MSP $M!
-            headSerialError(instance, 0);
+            headSerialError(telemport, 0);
             break;
     }
-    tailSerialReply(instance);
+    tailSerialReply(telemport);
 }
 
 // evaluate all other incoming serial data
-static void evaluateOtherData(uint8_t sr)
+static void evaluateOtherData(uint8_t sr, serialPort_t *telemport)
 {
     if (sr == '#')
-        cliProcess();
+        cliProcess(telemport);
     else if (sr == mcfg.reboot_character)
         systemReset(true);      // reboot to bootloader
 }
 
-void serialInstanceCom(mwproto_t *instance, bool isMainPort)
+void serialCom(serialPort_t *telemport)
 {
     uint8_t c;
+    static uint8_t offset;
+    static uint8_t dataSize;
+    static enum _serial_state {
+        IDLE,
+        HEADER_START,
+        HEADER_M,
+        HEADER_ARROW,
+        HEADER_SIZE,
+        HEADER_CMD,
+    } c_state = IDLE;
 
-    while (serialTotalBytesWaiting(instance->port)) {
-        c = serialRead(instance->port);
+    // in cli mode, all serial stuff goes to here. enter cli mode by sending #
+    if (cliMode) {
+        cliProcess(telemport);
+        return;
+    }
 
-        if (instance->c_state == IDLE) {
-            instance->c_state = (c == '$') ? HEADER_START : IDLE;
-            if (instance->c_state == IDLE && !f.ARMED && isMainPort)
-                evaluateOtherData(c); // if not armed evaluate all other incoming serial data
-        } else if (instance->c_state == HEADER_START) {
-            instance->c_state = (c == 'M') ? HEADER_M : IDLE;
-        } else if (instance->c_state == HEADER_M) {
-            instance->c_state = (c == '<') ? HEADER_ARROW : IDLE;
-        } else if (instance->c_state == HEADER_ARROW) {
+    while (serialTotalBytesWaiting(telemport)) {
+        c = serialRead(telemport);
+
+        if (c_state == IDLE) {
+            c_state = (c == '$') ? HEADER_START : IDLE;
+            if (c_state == IDLE && !f.ARMED)
+                evaluateOtherData(c, telemport); // if not armed evaluate all other incoming serial data
+        } else if (c_state == HEADER_START) {
+            c_state = (c == 'M') ? HEADER_M : IDLE;
+        } else if (c_state == HEADER_M) {
+            c_state = (c == '<') ? HEADER_ARROW : IDLE;
+        } else if (c_state == HEADER_ARROW) {
             if (c > INBUF_SIZE) {       // now we are expecting the payload size
-                instance->c_state = IDLE;
+                c_state = IDLE;
                 continue;
             }
-            instance->dataSize = c;
-            instance->offset = 0;
-            instance->checksum = 0;
-            instance->indRX = 0;
-            instance->checksum ^= c;
-            instance->c_state = HEADER_SIZE;      // the command is to follow
-        } else if (instance->c_state == HEADER_SIZE) {
-            instance->cmdMSP = c;
-            instance->checksum ^= c;
-            instance->c_state = HEADER_CMD;
-        } else if (instance->c_state == HEADER_CMD && instance->offset < instance->dataSize) {
-            instance->checksum ^= c;
-            instance->inBuf[instance->offset++] = c;
-        } else if (instance->c_state == HEADER_CMD && instance->offset >= instance->dataSize) {
-            if (instance->checksum == c) {        // compare calculated and transferred checksum
-                evaluateCommand(instance);      // we got a valid packet, evaluate it
+            dataSize = c;
+            offset = 0;
+            checksum = 0;
+            indRX = 0;
+            checksum ^= c;
+            c_state = HEADER_SIZE;      // the command is to follow
+        } else if (c_state == HEADER_SIZE) {
+            cmdMSP = c;
+            checksum ^= c;
+            c_state = HEADER_CMD;
+        } else if (c_state == HEADER_CMD && offset < dataSize) {
+            checksum ^= c;
+            inBuf[offset++] = c;
+        } else if (c_state == HEADER_CMD && offset >= dataSize) {
+            if (checksum == c) {        // compare calculated and transferred checksum
+                evaluateCommand(telemport);      // we got a valid packet, evaluate it
             }
-            instance->c_state = IDLE;
+            c_state = IDLE;
         }
     }
 }
 
-void serialCom(void)
-{
-    // in cli mode, all serial stuff goes to here. enter cli mode by sending #
-    if (cliMode) {
-        cliProcess();
-        return;
-    }
-
-    int idx;
-    for (idx = 0; idx < MAX_MSP_INSTANCES; idx++) {
-        if (serialinstances[idx].port)
-            serialInstanceCom(&serialinstances[idx], idx == 0);
-    }
-}

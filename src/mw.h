@@ -431,7 +431,7 @@ void mixTable(void);
 // Serial
 void mspInit(void);
 //void serialInit(uint32_t baudrate);
-void serialCom(void);
+void serialCom(serialPort_t *telemport);
 
 // Config
 void parseRcChannels(const char *input);
@@ -472,7 +472,7 @@ void buzzer(uint8_t warn_vbat);
 void systemBeep(bool onoff);
 
 // cli
-void cliProcess(void);
+void cliProcess(serialPort_t *telemport);
 
 // gps
 void gpsInit(USART_TypeDef *USARTx, uint8_t baudrate);

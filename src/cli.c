@@ -1015,7 +1015,7 @@ static void cliVersion(char *cmdline)
     cliPrintStr("Afro32 CLI version 2.2 " __DATE__ " / " __TIME__);
 }
 
-void cliProcess(void)
+void cliProcess(serialPort_t *telemport)
 {
     if (!cliMode) {
         cliMode = 1;
@@ -1023,8 +1023,8 @@ void cliProcess(void)
         cliPrompt();
     }
 
-    while (serialTotalBytesWaiting(core.mainport)) {
-        uint8_t c = serialRead(core.mainport);
+    while (serialTotalBytesWaiting(telemport)) {
+        uint8_t c = serialRead(telemport);
         if (c == '\t' || c == '?') {
             // do tab completion
             const clicmd_t *cmd, *pstart = NULL, *pend = NULL;
