@@ -117,7 +117,10 @@ void mpu6000AccInit(sensor_align_e align)
     if (align > 0){
         accAlign = align;
     }
-    acc_1G = 512 * 8;
+//    if (mpuAccelHalf)
+        acc_1G = 255 * 8;
+//    else
+//        acc_1G = 512 * 8;
 }
 
 bool mpu6000DetectSpi(sensor_t *acc, sensor_t *gyro, uint16_t lpf, uint8_t *scale)
