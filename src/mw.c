@@ -217,13 +217,7 @@ void annexCode(void)
         }
     }
 
-    serialCom(core.mainport);
-
-    if (!cliMode && feature(FEATURE_TELEMETRY)) {
-        // TODO fixme telemtry provider
-//        handleTelemetry();
-        serialCom(core.telemport);
-    }
+    serialCom();
 
     if (sensors(SENSOR_GPS)) {
         static uint32_t GPSLEDTime;

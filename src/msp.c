@@ -113,37 +113,39 @@ static const char pidnames[] = "ROLL;"
 static uint8_t checksum, indRX, inBuf[INBUF_SIZE];
 static uint8_t cmdMSP;
 
-void serialize32(serialPort_t *telemport, uint32_t a)
+//static serialPort_t *core.mspPort;
+
+void serialize32(uint32_t a)
 {
     static uint8_t t;
     t = a;
-    serialWrite(telemport, t);
+    serialWrite(core.mspPort, t);
     checksum ^= t;
     t = a >> 8;
-    serialWrite(telemport, t);
+    serialWrite(core.mspPort, t);
     checksum ^= t;
     t = a >> 16;
-    serialWrite(telemport, t);
+    serialWrite(core.mspPort, t);
     checksum ^= t;
     t = a >> 24;
-    serialWrite(telemport, t);
+    serialWrite(core.mspPort, t);
     checksum ^= t;
 }
 
-void serialize16(serialPort_t *telemport, int16_t a)
+void serialize16(int16_t a)
 {
     static uint8_t t;
     t = a;
-    serialWrite(telemport, t);
+    serialWrite(core.mspPort, t);
     checksum ^= t;
     t = a >> 8 & 0xff;
-    serialWrite(telemport, t);
+    serialWrite(core.mspPort, t);
     checksum ^= t;
 }
 
-void serialize8(serialPort_t *telemport, uint8_t a)
+void serialize8(uint8_t a)
 {
-    serialWrite(telemport, a);
+    serialWrite(core.mspPort, a);
     checksum ^= a;
 }
 
@@ -166,46 +168,46 @@ uint32_t read32(void)
     return t;
 }
 
-void headSerialResponse(serialPort_t *telemport, uint8_t err, uint8_t s)
+void headSerialResponse(uint8_t err, uint8_t s)
 {
-    serialize8(telemport, '$');
-    serialize8(telemport, 'M');
-    serialize8(telemport, err ? '!' : '>');
+    serialize8('$');
+    serialize8('M');
+    serialize8(err ? '!' : '>');
     checksum = 0;               // start calculating a new checksum
-    serialize8(telemport, s);
-    serialize8(telemport, cmdMSP);
+    serialize8(s);
+    serialize8(cmdMSP);
 }
 
-void headSerialReply(serialPort_t *telemport, uint8_t s)
+void headSerialReply(uint8_t s)
 {
-    headSerialResponse(telemport, 0, s);
+    headSerialResponse(0, s);
 }
 
-void headSerialError(serialPort_t *telemport, uint8_t s)
+void headSerialError(uint8_t s)
 {
-    headSerialResponse(telemport, 1, s);
+    headSerialResponse(1, s);
 }
 
-void tailSerialReply(serialPort_t *telemport)
+void tailSerialReply(void)
 {
-    serialize8(telemport, checksum);
+    serialize8(checksum);
 }
 
-void s_struct(serialPort_t *telemport, uint8_t *cb, uint8_t siz)
+void s_struct(uint8_t *cb, uint8_t siz)
 {
-    headSerialReply(telemport, siz);
+    headSerialReply(siz);
     while (siz--)
-        serialize8(telemport, *cb++);
+        serialize8(*cb++);
 }
 
-void serializeNames(serialPort_t *telemport, const char *s)
+void serializeNames(const char *s)
 {
     const char *c;
     for (c = s; *c; c++)
-        serialize8(telemport, *c);
+        serialize8(*c);
 }
 
-void serializeBoxNamesReply(serialPort_t *telemport)
+void serializeBoxNamesReply(void)
 {
     int i, idx, j, flag = 1, count = 0, len;
 
@@ -219,12 +221,12 @@ void serializeBoxNamesReply(serialPort_t *telemport)
             count += len;
         } else {
             for (j = 0; j < len; j++)
-                serialize8(telemport, boxes[idx].boxName[j]);
+                serialize8(boxes[idx].boxName[j]);
         }
     }
 
     if (flag) {
-        headSerialReply(telemport, count);
+        headSerialReply(count);
         flag = 0;
         goto reset;
     }
@@ -269,7 +271,7 @@ void mspInit(void)
 
 }
 
-static void evaluateCommand(serialPort_t *telemport)
+static void evaluateCommand(void)
 {
     uint32_t i, tmp, junk;
     uint8_t wp_no;
@@ -279,13 +281,13 @@ static void evaluateCommand(serialPort_t *telemport)
         case MSP_SET_RAW_RC:
             for (i = 0; i < 8; i++)
                 rcData[i] = read16();
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             mspFrameRecieve();
             break;
         case MSP_SET_ACC_TRIM:
             cfg.angleTrim[PITCH] = read16();
             cfg.angleTrim[ROLL] = read16();
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             break;
         case MSP_SET_RAW_GPS:
             f.GPS_FIX = read8();
@@ -295,7 +297,7 @@ static void evaluateCommand(serialPort_t *telemport)
             GPS_altitude = read16();
             GPS_speed = read16();
             GPS_update |= 2;        // New data signalisation to GPS functions
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             break;
         case MSP_SET_PID:
             for (i = 0; i < PIDITEMS; i++) {
@@ -303,12 +305,12 @@ static void evaluateCommand(serialPort_t *telemport)
                 cfg.I8[i] = read8();
                 cfg.D8[i] = read8();
             }
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             break;
         case MSP_SET_BOX:
             for (i = 0; i < numberBoxItems; i++)
                 cfg.activate[availableBoxes[i]] = read16();
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             break;
         case MSP_SET_RC_TUNING:
             cfg.rcRate8 = read8();
@@ -318,7 +320,7 @@ static void evaluateCommand(serialPort_t *telemport)
             cfg.dynThrPID = read8();
             cfg.thrMid8 = read8();
             cfg.thrExpo8 = read8();
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             break;
         case MSP_SET_MISC:
             read16(); // powerfailmeter
@@ -333,12 +335,12 @@ static void evaluateCommand(serialPort_t *telemport)
             mcfg.vbatmincellvoltage = read8();  // vbatlevel_warn1 in MWC2.3 GUI
             mcfg.vbatmaxcellvoltage = read8();  // vbatlevel_warn2 in MWC2.3 GUI
             read8();                            // vbatlevel_crit (unused)
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             break;
         case MSP_SET_MOTOR:
             for (i = 0; i < 8; i++)
                 motor_disarmed[i] = read16();
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             break;
         case MSP_SELECT_SETTING:
             if (!f.ARMED) {
@@ -348,29 +350,29 @@ static void evaluateCommand(serialPort_t *telemport)
                 // this writes new profile index and re-reads it
                 writeConfig(0, false);
             }
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             break;
         case MSP_SET_HEAD:
             magHold = read16();
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             break;
         case MSP_IDENT:
-            headSerialReply(telemport, 7);
-            serialize8(telemport, VERSION);                // multiwii version
-            serialize8(telemport, mcfg.mixerConfiguration); // type of multicopter
-            serialize8(telemport, MSP_VERSION);            // MultiWii Serial Protocol Version
-            serialize32(telemport, CAP_PLATFORM_32BIT | CAP_DYNBALANCE | (mcfg.flaps_speed ? CAP_FLAPS : 0));        // "capability"
+            headSerialReply(7);
+            serialize8( VERSION);                // multiwii version
+            serialize8(mcfg.mixerConfiguration); // type of multicopter
+            serialize8( MSP_VERSION);            // MultiWii Serial Protocol Version
+            serialize32( CAP_PLATFORM_32BIT | CAP_DYNBALANCE | (mcfg.flaps_speed ? CAP_FLAPS : 0));        // "capability"
             break;
         case MSP_STATUS:
-            headSerialReply(telemport, 11);
-            serialize16(telemport, cycleTime);
+            headSerialReply(11);
+            serialize16(cycleTime);
 #if defined(NAZEPRO)
-            serialize16(telemport,spiGetErrorCounter(SPI2));
+            serialize16(spiGetErrorCounter(SPI2));
 #endif
 #if defined(NAZE)
-            serialize16(telemport,i2cGetErrorCounter(I2C2));
+            serialize16(i2cGetErrorCounter(I2C2));
 #endif
-            serialize16(telemport, sensors(SENSOR_ACC) | sensors(SENSOR_BARO) << 1 | sensors(SENSOR_MAG) << 2 | sensors(SENSOR_GPS) << 3 | sensors(SENSOR_SONAR) << 4);
+            serialize16(sensors(SENSOR_ACC) | sensors(SENSOR_BARO) << 1 | sensors(SENSOR_MAG) << 2 | sensors(SENSOR_GPS) << 3 | sensors(SENSOR_SONAR) << 4);
             // OK, so you waste all the fucking time to have BOXNAMES and BOXINDEXES etc, and then you go ahead and serialize enabled shit simply by stuffing all
             // the bits in order, instead of setting the enabled bits based on BOXINDEX. WHERE IS THE FUCKING LOGIC IN THIS, FUCKWADS.
             // Serialize the boxes in the order we delivered them, until multiwii retards fix their shit
@@ -383,38 +385,38 @@ static void evaluateCommand(serialPort_t *telemport)
                 if (flag)
                     junk |= 1 << i;
             }
-            serialize32(telemport, junk);
-            serialize8(telemport, mcfg.current_profile);
+            serialize32(junk);
+            serialize8(mcfg.current_profile);
             break;
         case MSP_RAW_IMU:
-            headSerialReply(telemport, 18);
+            headSerialReply(18);
             // Retarded hack until multiwiidorks start using real units for sensor data
             if (acc_1G > 1024) {
                 for (i = 0; i < 3; i++)
-                    serialize16(telemport, accSmooth[i] / 8);
+                    serialize16(accSmooth[i] / 8);
             } else {
                 for (i = 0; i < 3; i++)
-                    serialize16(telemport, accSmooth[i]);
+                    serialize16(accSmooth[i]);
             }
             for (i = 0; i < 3; i++)
-                serialize16(telemport, gyroData[i]);
+                serialize16(gyroData[i]);
             for (i = 0; i < 3; i++)
-                serialize16(telemport, magADC[i]);
+                serialize16(magADC[i]);
             break;
         case MSP_SERVO:
-            s_struct(telemport, (uint8_t *)&servo, 16);
+            s_struct((uint8_t *)&servo, 16);
             break;
         case MSP_SERVO_CONF:
-            headSerialReply(telemport, 56);
+            headSerialReply(56);
             for (i = 0; i < MAX_SERVOS; i++) {
-                serialize16(telemport, cfg.servoConf[i].min);
-                serialize16(telemport, cfg.servoConf[i].max);
-                serialize16(telemport, cfg.servoConf[i].middle);
-                serialize8(telemport, cfg.servoConf[i].rate);
+                serialize16(cfg.servoConf[i].min);
+                serialize16(cfg.servoConf[i].max);
+                serialize16(cfg.servoConf[i].middle);
+                serialize8(cfg.servoConf[i].rate);
             }
             break;
         case MSP_SET_SERVO_CONF:
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             for (i = 0; i < MAX_SERVOS; i++) {
                 cfg.servoConf[i].min = read16();
                 cfg.servoConf[i].max = read16();
@@ -423,106 +425,106 @@ static void evaluateCommand(serialPort_t *telemport)
             }
             break;
         case MSP_MOTOR:
-            s_struct(telemport, (uint8_t *)motor, 16);
+            s_struct((uint8_t *)motor, 16);
             break;
         case MSP_RC:
-            headSerialReply(telemport, 16);
+            headSerialReply(16);
             for (i = 0; i < 8; i++)
-                serialize16(telemport, rcData[i]);
+                serialize16(rcData[i]);
             break;
         case MSP_RAW_GPS:
-            headSerialReply(telemport, 16);
-            serialize8(telemport, f.GPS_FIX);
-            serialize8(telemport, GPS_numSat);
-            serialize32(telemport, GPS_coord[LAT]);
-            serialize32(telemport, GPS_coord[LON]);
-            serialize16(telemport, GPS_altitude);
-            serialize16(telemport, GPS_speed);
-            serialize16(telemport, GPS_ground_course);
+            headSerialReply(16);
+            serialize8(f.GPS_FIX);
+            serialize8(GPS_numSat);
+            serialize32(GPS_coord[LAT]);
+            serialize32(GPS_coord[LON]);
+            serialize16(GPS_altitude);
+            serialize16(GPS_speed);
+            serialize16(GPS_ground_course);
             break;
         case MSP_COMP_GPS:
-            headSerialReply(telemport, 5);
-            serialize16(telemport, GPS_distanceToHome);
-            serialize16(telemport, GPS_directionToHome);
-            serialize8(telemport, GPS_update & 1);
+            headSerialReply(5);
+            serialize16(GPS_distanceToHome);
+            serialize16(GPS_directionToHome);
+            serialize8(GPS_update & 1);
             break;
         case MSP_ATTITUDE:
-            headSerialReply(telemport, 6);
+            headSerialReply(6);
             for (i = 0; i < 2; i++)
-                serialize16(telemport, angle[i]);
-            serialize16(telemport, heading);
+                serialize16(angle[i]);
+            serialize16(heading);
             break;
         case MSP_ALTITUDE:
-            headSerialReply(telemport, 6);
-            serialize32(telemport, EstAlt);
-            serialize16(telemport, vario);
+            headSerialReply(6);
+            serialize32(EstAlt);
+            serialize16(vario);
             break;
         case MSP_ANALOG:
-            headSerialReply(telemport, 7);
-            serialize8(telemport, vbat);
-            serialize16(telemport, 0); // power meter trash
-            serialize16(telemport, rssi);
-            serialize16(telemport, 0); // amperage
+            headSerialReply(7);
+            serialize8(vbat);
+            serialize16(0); // power meter trash
+            serialize16(rssi);
+            serialize16(0); // amperage
             break;
         case MSP_RC_TUNING:
-            headSerialReply(telemport, 7);
-            serialize8(telemport, cfg.rcRate8);
-            serialize8(telemport, cfg.rcExpo8);
-            serialize8(telemport, cfg.rollPitchRate);
-            serialize8(telemport, cfg.yawRate);
-            serialize8(telemport, cfg.dynThrPID);
-            serialize8(telemport, cfg.thrMid8);
-            serialize8(telemport, cfg.thrExpo8);
+            headSerialReply(7);
+            serialize8(cfg.rcRate8);
+            serialize8(cfg.rcExpo8);
+            serialize8(cfg.rollPitchRate);
+            serialize8(cfg.yawRate);
+            serialize8(cfg.dynThrPID);
+            serialize8(cfg.thrMid8);
+            serialize8(cfg.thrExpo8);
             break;
         case MSP_PID:
-            headSerialReply(telemport, 3 * PIDITEMS);
+            headSerialReply(3 * PIDITEMS);
             for (i = 0; i < PIDITEMS; i++) {
-                serialize8(telemport, cfg.P8[i]);
-                serialize8(telemport, cfg.I8[i]);
-                serialize8(telemport, cfg.D8[i]);
+                serialize8(cfg.P8[i]);
+                serialize8(cfg.I8[i]);
+                serialize8(cfg.D8[i]);
             }
             break;
         case MSP_PIDNAMES:
-            headSerialReply(telemport, sizeof(pidnames) - 1);
-            serializeNames(telemport, pidnames);
+            headSerialReply(sizeof(pidnames) - 1);
+            serializeNames(pidnames);
             break;
         case MSP_BOX:
-            headSerialReply(telemport, 2 * numberBoxItems);
+            headSerialReply(2 * numberBoxItems);
             for (i = 0; i < numberBoxItems; i++)
-                serialize16(telemport, cfg.activate[availableBoxes[i]]);
+                serialize16(cfg.activate[availableBoxes[i]]);
             break;
         case MSP_BOXNAMES:
-            // headSerialReply(telemport,sizeof(boxnames) - 1);
-            serializeBoxNamesReply(telemport);
+            // headSerialReply(sizeof(boxnames) - 1);
+            serializeBoxNamesReply();
             break;
         case MSP_BOXIDS:
-            headSerialReply(telemport, numberBoxItems);
+            headSerialReply(numberBoxItems);
             for (i = 0; i < numberBoxItems; i++)
-                serialize8(telemport, availableBoxes[i]);
+                serialize8(availableBoxes[i]);
             break;
         case MSP_MISC:
-            headSerialReply(telemport, 2 * 6 + 4 + 2 + 4);
-            serialize16(telemport, 0); // intPowerTrigger1 (aka useless trash)
-            serialize16(telemport, mcfg.minthrottle);
-            serialize16(telemport, mcfg.maxthrottle);
-            serialize16(telemport, mcfg.mincommand);
-            serialize16(telemport, cfg.failsafe_throttle);
-            serialize16(telemport, 0); // plog useless shit
-            serialize32(telemport, 0); // plog useless shit
-            serialize16(telemport, cfg.mag_declination / 10); // TODO check this shit
-            serialize8(telemport, mcfg.vbatscale);
-            serialize8(telemport, mcfg.vbatmincellvoltage);
-            serialize8(telemport, mcfg.vbatmaxcellvoltage);
-            serialize8(telemport, 0);
+            headSerialReply(2 * 6 + 4 + 2 + 4);
+            serialize16(0); // intPowerTrigger1 (aka useless trash)
+            serialize16(mcfg.minthrottle);
+            serialize16(mcfg.maxthrottle);
+            serialize16(mcfg.mincommand);
+            serialize16(cfg.failsafe_throttle);
+            serialize16(0); // plog useless shit
+            serialize32(0); // plog useless shit
+            serialize16(cfg.mag_declination / 10); // TODO check this shit
+            serialize8(mcfg.vbatscale);
+            serialize8(mcfg.vbatmincellvoltage);
+            serialize8(mcfg.vbatmaxcellvoltage);
+            serialize8(0);
             break;
         case MSP_MOTOR_PINS:
-            headSerialReply(telemport, 8);
+            headSerialReply(8);
             for (i = 0; i < 8; i++)
-                serialize8(telemport, i + 1);
+                serialize8(i + 1);
             break;
         case MSP_WP:
             wp_no = read8();    // get the wp number
-            headSerialReply(telemport, 18);
+            headSerialReply(18);
             if (wp_no == 0) {
                 lat = GPS_home[LAT];
                 lon = GPS_home[LON];
@@ -530,13 +532,13 @@ static void evaluateCommand(serialPort_t *telemport)
                 lat = GPS_hold[LAT];
                 lon = GPS_hold[LON];
             }
-            serialize8(telemport, wp_no);
-            serialize32(telemport, lat);
-            serialize32(telemport, lon);
-            serialize32(telemport, AltHold);           // altitude (cm) will come here -- temporary implementation to test feature with apps
-            serialize16(telemport, 0);                 // heading  will come here (deg)
-            serialize16(telemport, 0);                 // time to stay (ms) will come here
-            serialize8(telemport, 0);                  // nav flag will come here
+            serialize8(wp_no);
+            serialize32(lat);
+            serialize32(lon);
+            serialize32(AltHold);           // altitude (cm) will come here -- temporary implementation to test feature with apps
+            serialize16(0);                 // heading  will come here (deg)
+            serialize16(0);                 // time to stay (ms) will come here
+            serialize8(0);                  // nav flag will come here
             break;
         case MSP_SET_WP:
             wp_no = read8();    //get the wp number
@@ -561,78 +563,78 @@ static void evaluateCommand(serialPort_t *telemport)
                 nav_mode = NAV_MODE_WP;
                 GPS_set_next_wp(&GPS_hold[LAT], &GPS_hold[LON]);
             }
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             break;
         case MSP_RESET_CONF:
             if (!f.ARMED)
                 checkFirstTime(true);
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             break;
         case MSP_ACC_CALIBRATION:
             if (!f.ARMED)
                 calibratingA = CALIBRATING_ACC_CYCLES;
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             break;
         case MSP_MAG_CALIBRATION:
             if (!f.ARMED)
                 f.CALIBRATE_MAG = 1;
-            headSerialReply(telemport, 0);
+            headSerialReply(0);
             break;
         case MSP_EEPROM_WRITE:
             if (f.ARMED) {
-                headSerialError(telemport, 0);
+                headSerialError(0);
             } else {
                 writeConfig(0, true);
-                headSerialReply(telemport, 0);
+                headSerialReply(0);
             }
             break;
         case MSP_DEBUG:
-            headSerialReply(telemport, 8);
+            headSerialReply(8);
             // make use of this crap, output some useful QA statistics
             debug[3] = ((HSE_VALUE / 1000000) * 1000) + (SystemCoreClock / 1000000);         // XX0YY [crystal clock : core clock]
             for (i = 0; i < 4; i++)
-                serialize16(telemport, debug[i]);      // 4 variables are here for general monitoring purpose
+                serialize16(debug[i]);      // 4 variables are here for general monitoring purpose
             break;
 
             // Additional commands that are not compatible with MultiWii
         case MSP_ACC_TRIM:
-            headSerialReply(telemport, 4);
-            serialize16(telemport, cfg.angleTrim[PITCH]);
-            serialize16(telemport, cfg.angleTrim[ROLL]);
+            headSerialReply(4);
+            serialize16(cfg.angleTrim[PITCH]);
+            serialize16(cfg.angleTrim[ROLL]);
             break;
         case MSP_UID:
-            headSerialReply(telemport, 12);
-            serialize32(telemport, U_ID_0);
-            serialize32(telemport, U_ID_1);
-            serialize32(telemport, U_ID_2);
+            headSerialReply(12);
+            serialize32( U_ID_0);
+            serialize32( U_ID_1);
+            serialize32( U_ID_2);
             break;
         case MSP_GPSSVINFO:
-            headSerialReply(telemport, 1 + (GPS_numCh * 4));
-            serialize8(telemport, GPS_numCh);
+            headSerialReply(1 + (GPS_numCh * 4));
+            serialize8(GPS_numCh);
             for (i = 0; i < GPS_numCh; i++) {
-                serialize8(telemport, GPS_svinfo_chn[i]);
-                serialize8(telemport, GPS_svinfo_svid[i]);
-                serialize8(telemport, GPS_svinfo_quality[i]);
-                serialize8(telemport, GPS_svinfo_cno[i]);
+                serialize8(GPS_svinfo_chn[i]);
+                serialize8(GPS_svinfo_svid[i]);
+                serialize8(GPS_svinfo_quality[i]);
+                serialize8(GPS_svinfo_cno[i]);
             }
             break;
         default:                   // we do not know how to handle the (valid) message, indicate error MSP $M!
-            headSerialError(telemport, 0);
+            headSerialError(0);
             break;
     }
-    tailSerialReply(telemport);
+    tailSerialReply();
 }
 
 // evaluate all other incoming serial data
-static void evaluateOtherData(uint8_t sr, serialPort_t *telemport)
+static void evaluateOtherData(uint8_t sr)
 {
     if (sr == '#')
-        cliProcess(telemport);
+        cliProcess();
     else if (sr == mcfg.reboot_character)
         systemReset(true);      // reboot to bootloader
 }
 
-void serialCom(serialPort_t *telemport)
+void serialComImpl(void)
 {
     uint8_t c;
     static uint8_t offset;
@@ -648,17 +650,17 @@ void serialCom(serialPort_t *telemport)
 
     // in cli mode, all serial stuff goes to here. enter cli mode by sending #
     if (cliMode) {
-        cliProcess(telemport);
+        cliProcess();
         return;
     }
 
-    while (serialTotalBytesWaiting(telemport)) {
-        c = serialRead(telemport);
+    while (serialTotalBytesWaiting(core.mspPort)) {
+        c = serialRead(core.mspPort);
 
         if (c_state == IDLE) {
             c_state = (c == '$') ? HEADER_START : IDLE;
             if (c_state == IDLE && !f.ARMED)
-                evaluateOtherData(c, telemport); // if not armed evaluate all other incoming serial data
+                evaluateOtherData(c); // if not armed evaluate all other incoming serial data
         } else if (c_state == HEADER_START) {
             c_state = (c == 'M') ? HEADER_M : IDLE;
         } else if (c_state == HEADER_M) {
@@ -683,10 +685,21 @@ void serialCom(serialPort_t *telemport)
             inBuf[offset++] = c;
         } else if (c_state == HEADER_CMD && offset >= dataSize) {
             if (checksum == c) {        // compare calculated and transferred checksum
-                evaluateCommand(telemport);      // we got a valid packet, evaluate it
+                evaluateCommand();      // we got a valid packet, evaluate it
             }
             c_state = IDLE;
         }
     }
 }
 
+void serialCom(void)
+{
+    core.mspPort = core.mainport;
+    serialComImpl();
+
+    if (!cliMode && feature(FEATURE_TELEMETRY)) {
+        core.mspPort = core.telemport;
+        serialComImpl();
+    }
+
+}

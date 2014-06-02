@@ -297,6 +297,7 @@ typedef struct core_t {
     serialPort_t *gpsport;
     serialPort_t *telemport;
     serialPort_t *rcvrport;
+    serialPort_t *mspPort;
     uint8_t mpu6050_scale;                  // es/non-es variance between MPU6050 sensors, half my boards are mpu6000ES, need this to be dynamic. automatically set by mpu6050 driver.
     uint8_t numRCChannels;                  // number of rc channels as reported by current input driver
     bool useServo;                          // feature SERVO_TILT or wing/airplane mixers will enable this
@@ -431,7 +432,7 @@ void mixTable(void);
 // Serial
 void mspInit(void);
 //void serialInit(uint32_t baudrate);
-void serialCom(serialPort_t *telemport);
+void serialCom(void);
 
 // Config
 void parseRcChannels(const char *input);
@@ -472,7 +473,7 @@ void buzzer(uint8_t warn_vbat);
 void systemBeep(bool onoff);
 
 // cli
-void cliProcess(serialPort_t *telemport);
+void cliProcess();
 
 // gps
 void gpsInit(USART_TypeDef *USARTx, uint8_t baudrate);
