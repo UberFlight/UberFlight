@@ -525,20 +525,18 @@ int8_t gpsSetPassthrough(void)
         return -1;
 
     LED0_OFF
-    ;
-//    LED1_OFF;
+    LED1_OFF
 
-    while (1) {
+    while(1) {
         if (serialTotalBytesWaiting(core.gpsport)) {
             LED0_ON
-            ;
             serialWrite(core.mainport, serialRead(core.gpsport));
-//            LED0_OFF;
+            LED0_OFF
         }
         if (serialTotalBytesWaiting(core.mainport)) {
-//            LED1_ON;
+            LED1_ON
             serialWrite(core.gpsport, serialRead(core.mainport));
-//            LED1_OFF;
+            LED1_OFF
         }
     }
 }
