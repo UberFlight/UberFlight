@@ -139,8 +139,10 @@ bool mpu6000DetectSpi(sensor_t *acc, sensor_t *gyro, uint16_t lpf, uint8_t *scal
 
     delay(150);
 
+    ENABLE_MPU6000;
     spiTransfer(MPU6000_SPI, MPU6000_SIGNAL_PATH_RESET);          // Device Reset
     spiTransfer(MPU6000_SPI, BIT_GYRO | BIT_ACC | BIT_TEMP);
+    DISABLE_MPU6000;
 
     delay(150);
 
