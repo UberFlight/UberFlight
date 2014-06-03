@@ -5,7 +5,7 @@
 these things work and are tested
 
 * buzzer
-* motor/servo pwm 10 out
+* motor/servo pwm 14 out
 * standard rx pwm 8 chan
 * serial rx : spketrum sat
 * ppm rx
@@ -26,7 +26,6 @@ these things need to be tested
 
 
 ##Fix Me##
-
 * detect acc sensors range
 * headfree
 * led1 is not present
