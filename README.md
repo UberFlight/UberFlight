@@ -35,6 +35,5 @@ these things need to be tested
 * softserial
 * non msp telemetry
 * startup.s will reboot to dfu with gcc , keil startup.s  will reset/reboot
-* sensors resest , mag always work , mpu6050 work only 50% of time , can reproduce : always
 * build make target=NAZE  .. worth fixing f103 build or remove thing for rev5 i2c ?
 * all the things
