@@ -43,7 +43,8 @@ const timerHardware_t timerHardware[] = {
     {   TIM15, GPIOA, Pin_2,  TIM_Channel_1, TIM1_BRK_TIM15_IRQn, 1, Mode_AF_PP_PD},
     {   TIM15, GPIOA, Pin_3,  TIM_Channel_2, TIM1_BRK_TIM15_IRQn, 1, Mode_AF_PP_PD},
     {   TIM16, GPIOA, Pin_6,  TIM_Channel_1, TIM1_UP_TIM16_IRQn, 1, Mode_AF_PP_PD},
-    {   TIM17, GPIOA, Pin_7,  TIM_Channel_1, TIM1_TRG_COM_TIM17_IRQn, 1, Mode_AF_PP_PD}
+    {   TIM17, GPIOA, Pin_7,  TIM_Channel_1, TIM1_TRG_COM_TIM17_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM2,  GPIOB, Pin_11, TIM_Channel_4, TIM2_IRQn, 0, Mode_AF_PP_PD}               // flex port
 
 };
 #define MAX_TIMERS 7

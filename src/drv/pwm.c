@@ -76,6 +76,10 @@ PWM5 | TYPE_M,      // Swap to servo if needed
 PWM6 | TYPE_M,      // Swap to servo if needed
 PWM7 | TYPE_M,      // Swap to servo if needed
 PWM8 | TYPE_M,      // Swap to servo if needed
+PWM2 | TYPE_M,      // Swap to servo if needed
+PWM3 | TYPE_M,      // Swap to servo if needed
+PWM4 | TYPE_M,      // Swap to servo if needed
+PWM15 | TYPE_M,      // Swap to servo if needed
 0xFF };
 
 static const uint8_t multiPWM[] = { PWM1 | TYPE_IW,     // input #1
@@ -105,6 +109,10 @@ PWM5 | TYPE_S,      // servo #5
 PWM6 | TYPE_S,
 PWM7 | TYPE_S,
 PWM8 | TYPE_S,      // servo #8
+PWM2 | TYPE_S,
+PWM3 | TYPE_S,
+PWM4 | TYPE_S,
+PWM15 | TYPE_S,     // servo #12
 0xFF };
 
 static const uint8_t airPWM[] = { PWM1 | TYPE_IW,     // input #1
@@ -321,12 +329,8 @@ bool pwmInit(drv_pwm_config_t *config)
         if (hardwareMap[i] == 0xFF) // terminator
             break;
 
-        // Serialrx , pwm 1 can be used for pwm sensor ?
-        if (config->useSerialrx && (port == PWM1))
-            continue;
-
-        // 12c or uart use PWM 3 and 4
-        if ((config->useUART || config->useI2c) && (port == PWM3 || port == PWM4))
+        // 12c or uart use PWM 2 and 3
+        if ((config->useUART || config->useI2c) && (port == PWM2 || port == PWM3))
             continue;
 
         // TODO we dont do sofserial , skip softSerial ports
@@ -353,6 +357,15 @@ bool pwmInit(drv_pwm_config_t *config)
                 if (port >= PWM5 && port <= PWM8)
                     mask = TYPE_S;
             }
+        }
+
+        // TODO add servo/motor type in mcfg
+        // if Serialrx , remap pwm 1 to motor and ignore flex port
+        if (config->useSerialrx) {
+            if (port == PWM15)
+                continue;
+            if(port == PWM1)
+                mask = TYPE_M;
         }
 
         if (mask & TYPE_IP) {

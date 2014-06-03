@@ -1,6 +1,7 @@
 #pragma once
 
-#define MAX_MOTORS  10
+// TODO fixme , msp mas 8 motors
+#define MAX_MOTORS  8
 #define MAX_SERVOS  8
 #define MAX_INPUTS  8
 #define PULSE_1MS   (1000)      // 1ms pulse width
@@ -41,6 +42,7 @@ enum {
     PWM12,
     PWM13,
     PWM14,
+    PWM15,
     MAX_PORTS
 };
 
