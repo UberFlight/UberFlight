@@ -69,16 +69,11 @@ bool readHMC5983(int16_t *magADC)
 {
     uint8_t buf[6];
     int16_t mag[3];
-    setSPIdivisor(HMC5983_SPI, 8);  // 4.5 MHz SPI clock
+    setSPIdivisor(8);  // 4.5 MHz SPI clock
 
     ENABLE_HMC5983;
-    spiTransfer(HMC5983_SPI, HMC5983_DATA_X_MSB_REG + 0x80 + 0x40);
-    buf[0] = spiTransfer(HMC5983_SPI, 0x00);
-    buf[1] = spiTransfer(HMC5983_SPI, 0x00);
-    buf[2] = spiTransfer(HMC5983_SPI, 0x00);
-    buf[3] = spiTransfer(HMC5983_SPI, 0x00);
-    buf[4] = spiTransfer(HMC5983_SPI, 0x00);
-    buf[5] = spiTransfer(HMC5983_SPI, 0x00);
+    spiTransferByte(HMC5983_DATA_X_MSB_REG + 0x80 + 0x40);
+    spiTransfer(buf, NULL, 6);
     DISABLE_HMC5983;
 
     mag[X] = (int16_t)(buf[0] << 8 | buf[1]) * magGain[X];
@@ -108,22 +103,22 @@ bool hmc5983DetectSpi(sensor_t *mag, sensor_align_e align)
     int16_t magADC[3];
     int32_t xyz_total[3] = { 0, 0, 0 }; // 32 bit totals so they won't overflow.
 
-    spiResetErrorCounter(HMC5983_SPI);
+    spiResetErrorCounter();
 
     uint8_t hmc5983Status = 0;
     uint8_t i, calibrationSteps = 2;
-    setSPIdivisor(HMC5983_SPI, 8);  // 4.5 MHz SPI clock
+    setSPIdivisor( 8);  // 4.5 MHz SPI clock
 
     ENABLE_HMC5983;
-    spiTransfer(HMC5983_SPI, HMC5983_CONFIG_REG_A);
-    spiTransfer(HMC5983_SPI, TS | SENSOR_CONFIG | POSITIVE_BIAS_CONFIGURATION);
+    spiTransferByte(HMC5983_CONFIG_REG_A);
+    spiTransferByte(TS | SENSOR_CONFIG | POSITIVE_BIAS_CONFIGURATION);
     DISABLE_HMC5983;
 
     delay(50);
 
     ENABLE_HMC5983;
-    spiTransfer(HMC5983_SPI, HMC5983_CONFIG_REG_B);
-    spiTransfer(HMC5983_SPI, SENSOR_INIT_GAIN);
+    spiTransferByte(HMC5983_CONFIG_REG_B);
+    spiTransferByte(SENSOR_INIT_GAIN);
     DISABLE_HMC5983;
 
     delay(20);
@@ -132,16 +127,16 @@ bool hmc5983DetectSpi(sensor_t *mag, sensor_align_e align)
 
     for (i = 0; i < 10; i++) {
         ENABLE_HMC5983;
-        spiTransfer(HMC5983_SPI, HMC5983_MODE_REG);
-        spiTransfer(HMC5983_SPI, OP_MODE_SINGLE);
+        spiTransferByte(HMC5983_MODE_REG);
+        spiTransferByte(OP_MODE_SINGLE);
         DISABLE_HMC5983;
 
         delay(20);
 
         while ((hmc5983Status && STATUS_RDY) == 0x00) {
             ENABLE_HMC5983;
-            spiTransfer(HMC5983_SPI, HMC5983_STATUS_REG + 0x80);
-            hmc5983Status = spiTransfer(HMC5983_SPI, 0x00);
+            spiTransferByte(HMC5983_STATUS_REG + 0x80);
+            hmc5983Status = spiTransferByte(0x00);
             DISABLE_HMC5983;
         }
         if (!readHMC5983(magADC)) // check for valid data
@@ -154,8 +149,8 @@ bool hmc5983DetectSpi(sensor_t *mag, sensor_align_e align)
         calibrationSteps--;
 
     ENABLE_HMC5983;
-    spiTransfer(HMC5983_SPI, HMC5983_CONFIG_REG_A);
-    spiTransfer(HMC5983_SPI, SENSOR_CONFIG | NEGATIVE_BIAS_CONFIGURATION);
+    spiTransferByte(HMC5983_CONFIG_REG_A);
+    spiTransferByte(SENSOR_CONFIG | NEGATIVE_BIAS_CONFIGURATION);
     DISABLE_HMC5983;
 
     delay(20);
@@ -163,16 +158,16 @@ bool hmc5983DetectSpi(sensor_t *mag, sensor_align_e align)
 
     for (i = 0; i < 10; i++) {
         ENABLE_HMC5983;
-        spiTransfer(HMC5983_SPI, HMC5983_MODE_REG);
-        spiTransfer(HMC5983_SPI, OP_MODE_SINGLE);
+        spiTransferByte(HMC5983_MODE_REG);
+        spiTransferByte(OP_MODE_SINGLE);
         DISABLE_HMC5983;
 
         delay(20);
 
         while ((hmc5983Status && STATUS_RDY) == 0x00) {
             ENABLE_HMC5983;
-            spiTransfer(HMC5983_SPI, HMC5983_STATUS_REG + 0x80);
-            hmc5983Status = spiTransfer(HMC5983_SPI, 0x00);
+            spiTransferByte(HMC5983_STATUS_REG + 0x80);
+            hmc5983Status = spiTransferByte(0x00);
             DISABLE_HMC5983;
         }
         if (!readHMC5983(magADC))
@@ -185,28 +180,28 @@ bool hmc5983DetectSpi(sensor_t *mag, sensor_align_e align)
         calibrationSteps--;
 
     ENABLE_HMC5983;
-    spiTransfer(HMC5983_SPI, HMC5983_CONFIG_REG_A);
-    spiTransfer(HMC5983_SPI, TS | SENSOR_CONFIG | NORMAL_MEASUREMENT_CONFIGURATION);
+    spiTransferByte(HMC5983_CONFIG_REG_A);
+    spiTransferByte(TS | SENSOR_CONFIG | NORMAL_MEASUREMENT_CONFIGURATION);
     DISABLE_HMC5983;
 
     ENABLE_HMC5983;
-    spiTransfer(HMC5983_SPI, HMC5983_CONFIG_REG_B);
-    spiTransfer(HMC5983_SPI, SENSOR_GAIN);
+    spiTransferByte(HMC5983_CONFIG_REG_B);
+    spiTransferByte(SENSOR_GAIN);
     DISABLE_HMC5983;
 
     delay(50);
 
     ENABLE_HMC5983;
-    spiTransfer(HMC5983_SPI, HMC5983_MODE_REG);
-    spiTransfer(HMC5983_SPI, OP_MODE_CONTINUOUS);
+    spiTransferByte(HMC5983_MODE_REG);
+    spiTransferByte(OP_MODE_CONTINUOUS);
     DISABLE_HMC5983;
 
     delay(20);
 
     readHMC5983(magADC);
 
-    if ((((int8_t)magADC[1]) == -1 && ((int8_t)magADC[0]) == -1) || spiGetErrorCounter(HMC5983_SPI) != 0) {
-        spiResetErrorCounter(HMC5983_SPI);
+    if ((((int8_t)magADC[1]) == -1 && ((int8_t)magADC[0]) == -1) || spiGetErrorCounter() != 0) {
+        spiResetErrorCounter();
         return false;
     }
 //    magGain[X] = fabsf(660.0f * HMC5983_X_SELF_TEST_GAUSS * 2.0f * 10.0f / xyz_total[X]);

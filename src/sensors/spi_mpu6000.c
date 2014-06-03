@@ -102,8 +102,8 @@ static sensor_align_e gyroAlign = CW180_DEG;
 static sensor_align_e accAlign = CW180_DEG;
 
 // TODO read temperature
-//   rawMPU6000Temperature[1] = spiTransfer(MPU6000_SPI, 0x00);
-//   rawMPU6000Temperature[0] = spiTransfer(MPU6000_SPI, 0x00);
+//   rawMPU6000Temperature[1] = spiTransferByte(0x00);
+//   rawMPU6000Temperature[0] = spiTransferByte(0x00);
 
 void mpu6000GyroInit(sensor_align_e align)
 {
@@ -117,86 +117,87 @@ void mpu6000AccInit(sensor_align_e align)
     if (align > 0){
         accAlign = align;
     }
+    // Fixme
 //    if (mpuAccelHalf)
-        acc_1G = 255 * 8;
+//        acc_1G = 255 * 8;
 //    else
-//        acc_1G = 512 * 8;
+        acc_1G = 512 * 8;
 }
 
 bool mpu6000DetectSpi(sensor_t *acc, sensor_t *gyro, uint16_t lpf, uint8_t *scale)
 {
     int16_t data[3];
-    spiResetErrorCounter(MPU6000_SPI);
+    spiResetErrorCounter();
 
-    setSPIdivisor(MPU6000_SPI, 128);  // 0.5625 MHz SPI Clock
+    setSPIdivisor( 128);  // 0.5625 MHz SPI Clock
 
     ///////////////////////////////////
 
     ENABLE_MPU6000;
-    spiTransfer(MPU6000_SPI, MPU6000_PWR_MGMT_1);          // Device Reset
-    spiTransfer(MPU6000_SPI, BIT_H_RESET);
+    spiTransferByte(MPU6000_PWR_MGMT_1);          // Device Reset
+    spiTransferByte(BIT_H_RESET);
     DISABLE_MPU6000;
 
     delay(150);
 
     ENABLE_MPU6000;
-    spiTransfer(MPU6000_SPI, MPU6000_SIGNAL_PATH_RESET);          // Device Reset
-    spiTransfer(MPU6000_SPI, BIT_GYRO | BIT_ACC | BIT_TEMP);
+    spiTransferByte(MPU6000_SIGNAL_PATH_RESET);          // Device Reset
+    spiTransferByte(BIT_GYRO | BIT_ACC | BIT_TEMP);
     DISABLE_MPU6000;
 
     delay(150);
 
     ENABLE_MPU6000;
-    spiTransfer(MPU6000_SPI, MPU6000_PWR_MGMT_1);          // Clock Source PPL with Z axis gyro reference
-    spiTransfer(MPU6000_SPI, MPU_CLK_SEL_PLLGYROZ);
+    spiTransferByte(MPU6000_PWR_MGMT_1);          // Clock Source PPL with Z axis gyro reference
+    spiTransferByte(MPU_CLK_SEL_PLLGYROZ);
     DISABLE_MPU6000;
 
     delayMicroseconds(1);
 
     ENABLE_MPU6000;
-    spiTransfer(MPU6000_SPI, MPU6000_USER_CTRL);           // Disable Primary I2C Interface
-    spiTransfer(MPU6000_SPI, BIT_I2C_IF_DIS);
+    spiTransferByte(MPU6000_USER_CTRL);           // Disable Primary I2C Interface
+    spiTransferByte(BIT_I2C_IF_DIS);
     DISABLE_MPU6000;
 
     delayMicroseconds(1);
 
     ENABLE_MPU6000;
-    spiTransfer(MPU6000_SPI, MPU6000_PWR_MGMT_2);
-    spiTransfer(MPU6000_SPI, 0x00);
+    spiTransferByte(MPU6000_PWR_MGMT_2);
+    spiTransferByte(0x00);
     DISABLE_MPU6000;
 
     delayMicroseconds(1);
 
     ENABLE_MPU6000;
-    spiTransfer(MPU6000_SPI, MPU6000_SMPLRT_DIV);          // Accel Sample Rate 1000 Hz, Gyro Sample Rate 8000 Hz
-    spiTransfer(MPU6000_SPI, 0x00);
+    spiTransferByte(MPU6000_SMPLRT_DIV);          // Accel Sample Rate 1000 Hz, Gyro Sample Rate 8000 Hz
+    spiTransferByte(0x00);
     DISABLE_MPU6000;
 
     delayMicroseconds(1);
 
     ENABLE_MPU6000;
-    spiTransfer(MPU6000_SPI, MPU6000_CONFIG);              // Accel and Gyro DLPF Setting
-    spiTransfer(MPU6000_SPI, BITS_DLPF_CFG_42HZ);
+    spiTransferByte(MPU6000_CONFIG);              // Accel and Gyro DLPF Setting
+    spiTransferByte(BITS_DLPF_CFG_42HZ);
     DISABLE_MPU6000;
 
     delayMicroseconds(1);
 
     ENABLE_MPU6000;
-    spiTransfer(MPU6000_SPI, MPU6000_ACCEL_CONFIG);        // Accel +/- 8 G Full Scale
-    spiTransfer(MPU6000_SPI, BITS_FS_8G);
+    spiTransferByte(MPU6000_ACCEL_CONFIG);        // Accel +/- 8 G Full Scale
+    spiTransferByte(BITS_FS_8G);
     DISABLE_MPU6000;
 
     delayMicroseconds(1);
 
     ENABLE_MPU6000;
-    spiTransfer(MPU6000_SPI, MPU6000_GYRO_CONFIG);         // Gyro +/- 1000 DPS Full Scale
-    spiTransfer(MPU6000_SPI, BITS_FS_2000DPS);
+    spiTransferByte(MPU6000_GYRO_CONFIG);         // Gyro +/- 1000 DPS Full Scale
+    spiTransferByte(BITS_FS_2000DPS);
     DISABLE_MPU6000;
 
     mpu6000GyroRead(data);
 
-    if ((((int8_t)data[1]) == -1 && ((int8_t)data[0]) == -1) || spiGetErrorCounter(HMC5983_SPI) != 0) {
-        spiResetErrorCounter(MS5611_SPI);
+    if ((((int8_t)data[1]) == -1 && ((int8_t)data[0]) == -1) || spiGetErrorCounter() != 0) {
+        spiResetErrorCounter();
         return false;
     }
     acc->init = mpu6000AccInit;
@@ -212,23 +213,16 @@ bool mpu6000GyroRead(int16_t *gyroData)
 {
     int16_t data[3];
     uint8_t buf[6];
-    setSPIdivisor(MPU6000_SPI, 2);  // 18 MHz SPI clock
+    setSPIdivisor(2);  // 18 MHz SPI clock
 
     ENABLE_MPU6000;
-    spiTransfer(MPU6000_SPI, MPU6000_GYRO_XOUT_H | 0x80);
-
-    buf[0] = spiTransfer(MPU6000_SPI, 0x00);
-    buf[1] = spiTransfer(MPU6000_SPI, 0x00);
-    buf[2] = spiTransfer(MPU6000_SPI, 0x00);
-    buf[3] = spiTransfer(MPU6000_SPI, 0x00);
-    buf[4] = spiTransfer(MPU6000_SPI, 0x00);
-    buf[5] = spiTransfer(MPU6000_SPI, 0x00);
-
+    spiTransferByte(MPU6000_GYRO_XOUT_H | 0x80);
+    spiTransfer(buf, NULL, 6);
     DISABLE_MPU6000;
 
-    data[ROLL] = (int16_t)((buf[0] << 8) | buf[1]) / 4;
-    data[PITCH] = (int16_t)((buf[2] << 8) | buf[3]) / 4;
-    data[YAW] = (int16_t)((buf[4] << 8) | buf[5]) / 4;
+    data[X] = (int16_t)((buf[0] << 8) | buf[1]) / 4;
+    data[Y] = (int16_t)((buf[2] << 8) | buf[3]) / 4;
+    data[Z] = (int16_t)((buf[4] << 8) | buf[5]) / 4;
 
     alignSensors(data, gyroData, gyroAlign);
     return true;
@@ -238,23 +232,16 @@ bool mpu6000AccRead(int16_t *gyroData)
 {
     int16_t data[3];
     uint8_t buf[6];
-    setSPIdivisor(MPU6000_SPI, 2);  // 18 MHz SPI clock
+    setSPIdivisor(2);  // 18 MHz SPI clock
 
     ENABLE_MPU6000;
-    spiTransfer(MPU6000_SPI, MPU6000_ACCEL_XOUT_H | 0x80);
-
-    buf[0] = spiTransfer(MPU6000_SPI, 0x00);
-    buf[1] = spiTransfer(MPU6000_SPI, 0x00);
-    buf[2] = spiTransfer(MPU6000_SPI, 0x00);
-    buf[3] = spiTransfer(MPU6000_SPI, 0x00);
-    buf[4] = spiTransfer(MPU6000_SPI, 0x00);
-    buf[5] = spiTransfer(MPU6000_SPI, 0x00);
-
+    spiTransferByte(MPU6000_ACCEL_XOUT_H | 0x80);
+    spiTransfer(buf, NULL, 6);
     DISABLE_MPU6000;
 
-    data[ROLL] = (int16_t)((buf[0] << 8) | buf[1]) / 4;
-    data[PITCH] = (int16_t)((buf[2] << 8) | buf[3]) / 4;
-    data[YAW] = (int16_t)((buf[4] << 8) | buf[5]) / 4;
+    data[X] = (int16_t)((buf[0] << 8) | buf[1]);
+    data[Y] = (int16_t)((buf[2] << 8) | buf[3]);
+    data[Z] = (int16_t)((buf[4] << 8) | buf[5]);
 
     alignSensors(data, gyroData, accAlign);
     return true;

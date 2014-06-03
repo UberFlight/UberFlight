@@ -83,13 +83,13 @@ int32_t calculateTemperature(void)
 
 void readTemperature()
 {
-    setSPIdivisor(MS5611_SPI, 2);  // 18 MHz SPI clock
+    setSPIdivisor(2);  // 18 MHz SPI clock
 
     ENABLE_MS5611;
-    spiTransfer(MS5611_SPI, 0x00);
-    d2.bytes[2] = spiTransfer(MS5611_SPI, 0x00);
-    d2.bytes[1] = spiTransfer(MS5611_SPI, 0x00);
-    d2.bytes[0] = spiTransfer(MS5611_SPI, 0x00);
+    spiTransferByte(0x00);
+    d2.bytes[2] = spiTransferByte(0x00);
+    d2.bytes[1] = spiTransferByte(0x00);
+    d2.bytes[0] = spiTransferByte(0x00);
     DISABLE_MS5611;
 
     delayMicroseconds(1);
@@ -98,13 +98,13 @@ void readTemperature()
 
 void readPressure()
 {
-    setSPIdivisor(MS5611_SPI, 2);  // 18 MHz SPI clock
+    setSPIdivisor(2);  // 18 MHz SPI clock
 
     ENABLE_MS5611;
-    spiTransfer(MS5611_SPI, 0x00);
-    d1.bytes[2] = spiTransfer(MS5611_SPI, 0x00);
-    d1.bytes[1] = spiTransfer(MS5611_SPI, 0x00);
-    d1.bytes[0] = spiTransfer(MS5611_SPI, 0x00);
+    spiTransferByte(0x00);
+    d1.bytes[2] = spiTransferByte(0x00);
+    d1.bytes[1] = spiTransferByte(0x00);
+    d1.bytes[0] = spiTransferByte(0x00);
     DISABLE_MS5611;
 
     delayMicroseconds(1);
@@ -113,19 +113,19 @@ void readPressure()
 
 void requestTemperature()
 {
-    setSPIdivisor(MS5611_SPI, 2);  // 18 MHz SPI clock
+    setSPIdivisor(2);  // 18 MHz SPI clock
 
     ENABLE_MS5611;                      // Request temperature conversion
 #if   (OSR ==  256)
-    spiTransfer(MS5611_SPI, 0x50);
+    spiTransferByte(0x50);
 #elif (OSR ==  512)
-    spiTransfer(MS5611_SPI, 0x52);
+    spiTransferByte(0x52);
 #elif (OSR == 1024)
-    spiTransfer(MS5611_SPI, 0x54);
+    spiTransferByte(0x54);
 #elif (OSR == 2048)
-    spiTransfer(MS5611_SPI, 0x56);
+    spiTransferByte(0x56);
 #elif (OSR == 4096)
-    spiTransfer(MS5611_SPI, 0x58);
+    spiTransferByte(0x58);
 #endif
     DISABLE_MS5611;
 
@@ -134,19 +134,19 @@ void requestTemperature()
 }
 void requestPressure()
 {
-    setSPIdivisor(MS5611_SPI, 2);  // 18 MHz SPI clock
+    setSPIdivisor(2);  // 18 MHz SPI clock
 
     ENABLE_MS5611;                      // Request pressure conversion
 #if   (OSR ==  256)
-    spiTransfer(MS5611_SPI, 0x40);
+    spiTransferByte(0x40);
 #elif (OSR ==  512)
-    spiTransfer(MS5611_SPI, 0x42);
+    spiTransferByte(0x42);
 #elif (OSR == 1024)
-    spiTransfer(MS5611_SPI, 0x44);
+    spiTransferByte(0x44);
 #elif (OSR == 2048)
-    spiTransfer(MS5611_SPI, 0x46);
+    spiTransferByte(0x46);
 #elif (OSR == 4096)
-    spiTransfer(MS5611_SPI, 0x48);
+    spiTransferByte(0x48);
 #endif
     DISABLE_MS5611;
 
@@ -208,64 +208,64 @@ void calculatePressureAltitude(int32_t *pressure, int32_t *temperature)
 
 bool ms5611DetectSpi(baro_t *baro)
 {
-    spiResetErrorCounter(MS5611_SPI);
-    setSPIdivisor(MS5611_SPI, 2);  // 18 MHz SPI clock
+    spiResetErrorCounter();
+    setSPIdivisor(2);  // 18 MHz SPI clock
 
     ENABLE_MS5611;   // Reset Device
-    spiTransfer(MS5611_SPI, 0x1E);
+    spiTransferByte(0x1E);
     delay(3);
     DISABLE_MS5611;
 
     delayMicroseconds(1);
 
     ENABLE_MS5611;   // Read Calibration Data C1
-    spiTransfer(MS5611_SPI, 0xA2);
-    c1.bytes[1] = spiTransfer(MS5611_SPI, 0x00);
-    c1.bytes[0] = spiTransfer(MS5611_SPI, 0x00);
+    spiTransferByte(0xA2);
+    c1.bytes[1] = spiTransferByte(0x00);
+    c1.bytes[0] = spiTransferByte(0x00);
     DISABLE_MS5611;
 
     delayMicroseconds(1);
 
     ENABLE_MS5611;   // Read Calibration Data C2
-    spiTransfer(MS5611_SPI, 0xA4);
-    c2.bytes[1] = spiTransfer(MS5611_SPI, 0x00);
-    c2.bytes[0] = spiTransfer(MS5611_SPI, 0x00);
+    spiTransferByte(0xA4);
+    c2.bytes[1] = spiTransferByte(0x00);
+    c2.bytes[0] = spiTransferByte(0x00);
     DISABLE_MS5611;
 
     delayMicroseconds(1);
 
     ENABLE_MS5611;   // Read Calibration Data C3
-    spiTransfer(MS5611_SPI, 0xA6);
-    c3.bytes[1] = spiTransfer(MS5611_SPI, 0x00);
-    c3.bytes[0] = spiTransfer(MS5611_SPI, 0x00);
+    spiTransferByte(0xA6);
+    c3.bytes[1] = spiTransferByte(0x00);
+    c3.bytes[0] = spiTransferByte(0x00);
     DISABLE_MS5611;
 
     delayMicroseconds(1);
 
     ENABLE_MS5611;   // Read Calibration Data C4
-    spiTransfer(MS5611_SPI, 0xA8);
-    c4.bytes[1] = spiTransfer(MS5611_SPI, 0x00);
-    c4.bytes[0] = spiTransfer(MS5611_SPI, 0x00);
+    spiTransferByte(0xA8);
+    c4.bytes[1] = spiTransferByte(0x00);
+    c4.bytes[0] = spiTransferByte(0x00);
     DISABLE_MS5611;
 
     delayMicroseconds(1);
 
     ENABLE_MS5611;   // Read Calibration Data C5
-    spiTransfer(MS5611_SPI, 0xAA);
-    c5.bytes[1] = spiTransfer(MS5611_SPI, 0x00);
-    c5.bytes[0] = spiTransfer(MS5611_SPI, 0x00);
+    spiTransferByte(0xAA);
+    c5.bytes[1] = spiTransferByte(0x00);
+    c5.bytes[0] = spiTransferByte(0x00);
     DISABLE_MS5611;
 
     delayMicroseconds(1);
 
     ENABLE_MS5611;   // Read Calibration Data C6
-    spiTransfer(MS5611_SPI, 0xAC);
-    c6.bytes[1] = spiTransfer(MS5611_SPI, 0x00);
-    c6.bytes[0] = spiTransfer(MS5611_SPI, 0x00);
+    spiTransferByte(0xAC);
+    c6.bytes[1] = spiTransferByte(0x00);
+    c6.bytes[0] = spiTransferByte(0x00);
     DISABLE_MS5611;
 
-    if (((int8_t)c6.bytes[1]) == -1 || spiGetErrorCounter(MS5611_SPI) != 0) {
-        spiResetErrorCounter(MS5611_SPI);
+    if (((int8_t)c6.bytes[1]) == -1 || spiGetErrorCounter() != 0) {
+        spiResetErrorCounter();
         return false;
     }
 

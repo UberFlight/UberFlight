@@ -37,7 +37,6 @@
 
 // MS5611 Defines and Variables
 
-#define MS5611_SPI          SPI2
 
 #define MS5611_CS_GPIO      GPIOC
 #define MS5611_CS_PIN       GPIO_Pin_13

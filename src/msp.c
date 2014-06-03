@@ -367,7 +367,7 @@ static void evaluateCommand(void)
             headSerialReply(11);
             serialize16(cycleTime);
 #if defined(NAZEPRO)
-            serialize16(spiGetErrorCounter(SPI2));
+            serialize16(spiGetErrorCounter());
 #endif
 #if defined(NAZE)
             serialize16(i2cGetErrorCounter(I2C2));

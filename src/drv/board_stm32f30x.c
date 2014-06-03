@@ -154,7 +154,7 @@ void systemInit(bool overclock)
 
     gpioStart();
 
-    spiInit(SPI2);
+    spiInit();
 //    if feature(FEATURE_I2C)
 //        i2cInit(I2C2);
 

@@ -38,7 +38,6 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define MPU6000_SPI           SPI2
 
 #define MPU6000_CS_GPIO       GPIOC
 #define MPU6000_CS_PIN        GPIO_Pin_15

@@ -35,7 +35,6 @@
 
 #pragma once
 
-#define HMC5983_SPI           SPI2
 
 #define HMC5983_CS_GPIO       GPIOC
 #define HMC5983_CS_PIN        GPIO_Pin_14

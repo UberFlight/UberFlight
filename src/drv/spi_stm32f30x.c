@@ -47,109 +47,107 @@
 // SPI Defines and Variables
 ///////////////////////////////////////////////////////////////////////////////
 
-#define SPI2_GPIO             GPIOB
-#define SPI2_SCK_PIN          GPIO_Pin_13
-#define SPI2_SCK_PIN_SOURCE   GPIO_PinSource13
-#define SPI2_SCK_CLK          RCC_AHBPeriph_GPIOB
-#define SPI2_MISO_PIN         GPIO_Pin_14
-#define SPI2_MISO_PIN_SOURCE  GPIO_PinSource14
-#define SPI2_MISO_CLK         RCC_AHBPeriph_GPIOB
-#define SPI2_MOSI_PIN         GPIO_Pin_15
-#define SPI2_MOSI_PIN_SOURCE  GPIO_PinSource15
-#define SPI2_MOSI_CLK         RCC_AHBPeriph_GPIOB
+#define SPI_BUSE            SPI2
+#define SPI_GPIO            GPIOB
+#define SPI_SCK_PIN         GPIO_Pin_13
+#define SPI_SCK_PIN_SOURCE  GPIO_PinSource13
+#define SPI_SCK_CLK         RCC_AHBPeriph_GPIOB
+#define SPI_MISO_PIN        GPIO_Pin_14
+#define SPI_MISO_PIN_SOURCE GPIO_PinSource14
+#define SPI_MISO_CLK        RCC_AHBPeriph_GPIOB
+#define SPI_MOSI_PIN        GPIO_Pin_15
+#define SPI_MOSI_PIN_SOURCE GPIO_PinSource15
+#define SPI_MOSI_CLK        RCC_AHBPeriph_GPIOB
 
-static volatile uint16_t spi2ErrorCount = 0;
+static volatile uint16_t spiErrorCount = 0;
 
 ///////////////////////////////////////////////////////////////////////////////
 // SPI Initialize
 ///////////////////////////////////////////////////////////////////////////////
 
-bool spiInit(SPI_TypeDef *SPIx)
+bool spiInit(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
     SPI_InitTypeDef SPI_InitStructure;
 
     ///////////////////////////////////
 
-    if (SPIx == SPI2) {
-        RCC_AHBPeriphClockCmd(SPI2_SCK_CLK | SPI2_MISO_CLK | SPI2_MOSI_CLK, ENABLE);
+    RCC_AHBPeriphClockCmd(SPI_SCK_CLK | SPI_MISO_CLK | SPI_MOSI_CLK, ENABLE);
 
-        GPIO_PinAFConfig(SPI2_GPIO, SPI2_SCK_PIN_SOURCE, GPIO_AF_5);
-        GPIO_PinAFConfig(SPI2_GPIO, SPI2_MISO_PIN_SOURCE, GPIO_AF_5);
-        GPIO_PinAFConfig(SPI2_GPIO, SPI2_MOSI_PIN_SOURCE, GPIO_AF_5);
+    GPIO_PinAFConfig(SPI_GPIO, SPI_SCK_PIN_SOURCE, GPIO_AF_5);
+    GPIO_PinAFConfig(SPI_GPIO, SPI_MISO_PIN_SOURCE, GPIO_AF_5);
+    GPIO_PinAFConfig(SPI_GPIO, SPI_MOSI_PIN_SOURCE, GPIO_AF_5);
 
-        // Init pins
-        GPIO_InitStructure.GPIO_Pin = SPI2_SCK_PIN | SPI2_MISO_PIN | SPI2_MOSI_PIN;
-        GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-        GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-        GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-        GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    // Init pins
+    GPIO_InitStructure.GPIO_Pin = SPI_SCK_PIN | SPI_MISO_PIN | SPI_MOSI_PIN;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 
-        GPIO_Init(SPI2_GPIO, &GPIO_InitStructure);
+    GPIO_Init(SPI_GPIO, &GPIO_InitStructure);
 
-        ///////////////////////////////
+    ///////////////////////////////
 
-        GPIO_InitStructure.GPIO_Pin = EEPROM_CS_PIN;
-        GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-        GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-        GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-        GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+    GPIO_InitStructure.GPIO_Pin = EEPROM_CS_PIN;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 
-        GPIO_Init(EEPROM_CS_GPIO, &GPIO_InitStructure);
+    GPIO_Init(EEPROM_CS_GPIO, &GPIO_InitStructure);
 
-        DISABLE_EEPROM;
+    DISABLE_EEPROM;
 
-        ///////////////////////////////
+    ///////////////////////////////
 
-        GPIO_InitStructure.GPIO_Pin = HMC5983_CS_PIN;
-        GPIO_Init(HMC5983_CS_GPIO, &GPIO_InitStructure);
-        DISABLE_HMC5983;
+    GPIO_InitStructure.GPIO_Pin = HMC5983_CS_PIN;
+    GPIO_Init(HMC5983_CS_GPIO, &GPIO_InitStructure);
+    DISABLE_HMC5983;
 
-        ///////////////////////////////
+    ///////////////////////////////
 
-        GPIO_InitStructure.GPIO_Pin = MPU6000_CS_PIN;
-        GPIO_Init(MPU6000_CS_GPIO, &GPIO_InitStructure);
-        DISABLE_MPU6000;
+    GPIO_InitStructure.GPIO_Pin = MPU6000_CS_PIN;
+    GPIO_Init(MPU6000_CS_GPIO, &GPIO_InitStructure);
+    DISABLE_MPU6000;
 
-        ///////////////////////////////
+    ///////////////////////////////
 
-        GPIO_InitStructure.GPIO_Pin = MS5611_CS_PIN;
-        GPIO_Init(MS5611_CS_GPIO, &GPIO_InitStructure);
-        DISABLE_MS5611;
+    GPIO_InitStructure.GPIO_Pin = MS5611_CS_PIN;
+    GPIO_Init(MS5611_CS_GPIO, &GPIO_InitStructure);
+    DISABLE_MS5611;
 
-        ///////////////////////////////
+    ///////////////////////////////
 
-        SPI_I2S_DeInit(SPI2);
+    SPI_I2S_DeInit(SPI_BUSE);
 
-        SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
-        SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
-        SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
-        SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;
-        SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;
-        SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-        SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;  // 36/64 = 0.5625 MHz SPI Clock
-        SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
-        SPI_InitStructure.SPI_CRCPolynomial = 7;
+    SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
+    SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
+    SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
+    SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;
+    SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;
+    SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
+    SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;  // 36/64 = 0.5625 MHz SPI Clock
+    SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
+    SPI_InitStructure.SPI_CRCPolynomial = 7;
 
-        SPI_Init(SPI2, &SPI_InitStructure);
+    SPI_Init(SPI_BUSE, &SPI_InitStructure);
 
-        SPI_RxFIFOThresholdConfig(SPI2, SPI_RxFIFOThreshold_QF);
+    SPI_RxFIFOThresholdConfig(SPI_BUSE, SPI_RxFIFOThreshold_QF);
 
-        SPI_Cmd(SPI2, ENABLE);
-    }
-return true;
+    SPI_Cmd(SPI_BUSE, ENABLE);
+
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // SPI Timeout Callback
 ///////////////////////////////////////////////////////////////////////////////
 
-uint32_t spiTimeoutUserCallback(SPI_TypeDef *SPIx)
+// return -1, then check SPIErrorCount
+uint32_t spiTimeoutUserCallback()
 {
-    if (SPIx == SPI2) {
-        spi2ErrorCount += 1;
-    }
-    // return -1, then check spi2ErrorCount
+    spiErrorCount++;
     return -1;
 }
 
@@ -157,41 +155,68 @@ uint32_t spiTimeoutUserCallback(SPI_TypeDef *SPIx)
 // SPI Transfer
 ///////////////////////////////////////////////////////////////////////////////
 
-// return -1 or the recieved data
-uint8_t spiTransfer(SPI_TypeDef *SPIx, uint8_t data)
+// return uint8_t value or -1 when failure
+uint8_t spiTransferByte(uint8_t data)
+{
+    uint16_t spiTimeout = 1000;
+
+    while (SPI_I2S_GetFlagStatus(SPI_BUSE, SPI_I2S_FLAG_TXE) == RESET)
+        if ((spiTimeout--) == 0)
+            return spiTimeoutUserCallback();
+
+    SPI_SendData8(SPI_BUSE, data);
+
+    spiTimeout = 1000;
+    while (SPI_I2S_GetFlagStatus(SPI_BUSE, SPI_I2S_FLAG_RXNE) == RESET)
+        if ((spiTimeout--) == 0)
+            return spiTimeoutUserCallback();
+
+    return ((uint8_t)SPI_ReceiveData8(SPI_BUSE));
+}
+
+// return true or -1 when failure
+uint8_t spiTransfer(uint8_t *out, uint8_t *in, int len)
 {
     uint16_t spiTimeout;
+    uint8_t b;
 
-    spiTimeout = 0x1000;
-    while (SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_TXE) == RESET)
-        if ((spiTimeout--) == 0)
-            return spiTimeoutUserCallback(SPIx);
+    while (len--) {
+        b = in ? *(in++) : 0xFF;
+        spiTimeout = 1000;
+        while (SPI_I2S_GetFlagStatus(SPI_BUSE, SPI_I2S_FLAG_TXE) == RESET) {
+            if ((spiTimeout--) == 0)
+                return spiTimeoutUserCallback();
+        }
+        SPI_SendData8(SPI_BUSE, b);
+        spiTimeout = 1000;
+        while (SPI_I2S_GetFlagStatus(SPI_BUSE, SPI_I2S_FLAG_RXNE) == RESET) {
+            if ((spiTimeout--) == 0)
+                return spiTimeoutUserCallback();
+        }
 
-    SPI_SendData8(SPIx, data);
+        b = SPI_ReceiveData8(SPI_BUSE);
+        if (out)
+            *(out++) = b;
+    }
 
-    spiTimeout = 0x1000;
-    while (SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_RXNE) == RESET)
-        if ((spiTimeout--) == 0)
-            return spiTimeoutUserCallback(SPIx);
-
-    return ((uint8_t)SPI_ReceiveData8(SPIx));
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Set SPI Divisor
 ///////////////////////////////////////////////////////////////////////////////
 
-void setSPIdivisor(SPI_TypeDef *SPIx, uint16_t data)
+void setSPIdivisor(uint16_t divisor)
 {
 #define BR_CLEAR_MASK 0xFFC7
 
     uint16_t tempRegister;
 
-    SPI_Cmd(SPIx, DISABLE);
+    SPI_Cmd(SPI_BUSE, DISABLE);
 
-    tempRegister = SPIx->CR1;
+    tempRegister = SPI_BUSE->CR1;
 
-    switch (data) {
+    switch (divisor) {
         case 2:
             tempRegister &= BR_CLEAR_MASK;
             tempRegister |= SPI_BaudRatePrescaler_2;
@@ -233,27 +258,22 @@ void setSPIdivisor(SPI_TypeDef *SPIx, uint16_t data)
             break;
     }
 
-    SPIx->CR1 = tempRegister;
+    SPI_BUSE->CR1 = tempRegister;
 
-    SPI_Cmd(SPIx, ENABLE);
+    SPI_Cmd(SPI_BUSE, ENABLE);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Get SPI Error Count
 ///////////////////////////////////////////////////////////////////////////////
 
-uint16_t spiGetErrorCounter(SPI_TypeDef *SPIx)
+uint16_t spiGetErrorCounter(void)
 {
-    if (SPIx == SPI2) {
-        return spi2ErrorCount;
-    }
-    return -1;
+    return spiErrorCount;
 }
 
-void spiResetErrorCounter(SPI_TypeDef *SPIx)
+void spiResetErrorCounter(void)
 {
-    if (SPIx == SPI2) {
-        spi2ErrorCount = 0;
-    }
+    spiErrorCount = 0;
 }
 ///////////////////////////////////////////////////////////////////////////////
