@@ -1,7 +1,7 @@
 #pragma once
 
-// TODO fixme , msp mas 8 motors
-#define MAX_MOTORS  8
+// TODO fixme , msp has only 8 motors
+#define MAX_MOTORS  8    
 #define MAX_SERVOS  8
 #define MAX_INPUTS  8
 #define PULSE_1MS   (1000)      // 1ms pulse width
@@ -10,12 +10,12 @@
 
 typedef struct drv_pwm_config_t {
     bool useI2c;   // was used for serialrx on previous hardware
-    bool extraPwm;          // activate the 4 additional channels RC 5,6,7,8
+    bool noPwmRx;          // activate the 4 additional channels RC 5,6,7,8
     bool useSerialrx;
-    bool useUART;
-    bool useSoftSerial;
-    bool useServos;      // change motor 1 and 2 to servo
-    bool extraServos;    //  extraPwm additional channels are configured as servos, not motors
+    bool useRcUART;
+    bool useAf;
+    bool useCamStab;      
+    uint8_t notorsNumber;
     bool airplane;       // fixed wing hardware config, lots of servos etc
     uint8_t adcChannel;  // steal one RC input for current sensor
     uint16_t motorPwmRate;
@@ -46,7 +46,7 @@ enum {
     MAX_PORTS
 };
 
-bool pwmInit(drv_pwm_config_t *init); // returns whether driver is asking to calibrate throttle or not
+void pwmInit(drv_pwm_config_t *init);
 void pwmWriteMotor(uint8_t index, uint16_t value);
 void pwmWriteServo(uint8_t index, uint16_t value);
 uint16_t pwmRead(uint8_t channel);

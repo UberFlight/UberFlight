@@ -104,6 +104,7 @@ typedef enum {
     FEATURE_VARIO = 1 << 13,
     FEATURE_3D = 1 << 14,
     FEATURE_I2C = 1 << 15,
+    FEATURE_AF = 1 << 16,
 } AvailableFeatures;
 
 typedef enum {

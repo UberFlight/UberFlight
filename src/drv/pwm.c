@@ -1,7 +1,7 @@
 #include "board.h"
 
 /*
- Configuration maps:
+ TODO redo doc about Configuration maps:
 
  1) multirotor PPM input
  PWM1 used for PPM
@@ -44,12 +44,22 @@ typedef struct {
     uint16_t capture;
 } pwmPortData_t;
 
+// Pin type
 enum {
     TYPE_IP = 0x10,
     TYPE_IW = 0x20,
     TYPE_M = 0x40,
     TYPE_S = 0x80
 };
+// Pin alias type
+enum {
+    TYPE_CAMSTAB1 = 1,
+    TYPE_CAMSTAB2 = 2,
+};
+typedef struct {
+    uint8_t pin;
+    uint8_t af;
+} pwmPintData_t;
 
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
 
@@ -65,75 +75,78 @@ static uint16_t failsafeThreshold = 985;
 // external vars (ugh)
 extern int16_t failsafeCnt;
 
-static const uint8_t multiNoPWM[] = {
-PWM9 | TYPE_M,      // Swap to servo if needed
-PWM10 | TYPE_M,     // Swap to servo if needed
-PWM11 | TYPE_M,
-PWM12 | TYPE_M,
-PWM13 | TYPE_M,
-PWM14 | TYPE_M,
-PWM5 | TYPE_M,      // Swap to servo if needed
-PWM6 | TYPE_M,      // Swap to servo if needed
-PWM7 | TYPE_M,      // Swap to servo if needed
-PWM8 | TYPE_M,      // Swap to servo if needed
-PWM2 | TYPE_M,      // Swap to servo if needed
-PWM3 | TYPE_M,      // Swap to servo if needed
-PWM4 | TYPE_M,      // Swap to servo if needed
-PWM15 | TYPE_M,      // Swap to servo if needed
-PWM1 | TYPE_IP,     // PPM input
-0xFF };
 
-static const uint8_t multiPWM[] = { PWM1 | TYPE_IW,     // input #1
-PWM2 | TYPE_IW,
-PWM3 | TYPE_IW,
-PWM4 | TYPE_IW,
-PWM5 | TYPE_IW,
-PWM6 | TYPE_IW,
-PWM7 | TYPE_IW,
-PWM8 | TYPE_IW,     // input #8
-PWM9 | TYPE_M,      // motor #1 or servo #1 (swap to servo if needed)
-PWM10 | TYPE_M,     // motor #2 or servo #2 (swap to servo if needed)
-PWM11 | TYPE_M,     // motor #1 or #3
-PWM12 | TYPE_M,
-PWM13 | TYPE_M,
-PWM14 | TYPE_M,     // motor #4 or #6
-0xFF };
+static const pwmPintData_t multiNoPWM[] = {
+        { PWM9 | TYPE_M, 0 },
+        { PWM10 | TYPE_M, 0 },
+        { PWM11 | TYPE_M, 0 },
+        { PWM12 | TYPE_M, 0 },
+        { PWM13 | TYPE_M, TYPE_CAMSTAB2 },     // camstab
+        { PWM14 | TYPE_M, TYPE_CAMSTAB2 },     // camstab
+        { PWM5 | TYPE_M, TYPE_S },      // or servo 1
+        { PWM6 | TYPE_M, TYPE_S },      // or servo 2
+        { PWM7 | TYPE_M, TYPE_S },      // or servo 3
+        { PWM8 | TYPE_M, TYPE_S },      // or servo 4
+        { PWM2 | TYPE_M, 0 },
+        { PWM3 | TYPE_M, 0 },
+        { PWM4 | TYPE_M, 0 },
+        { PWM15 | TYPE_M, 0 },
+        { PWM1 | TYPE_IP, 0 },     // PPM input
+        { 0xFF, 0 } };
 
-static const uint8_t airNoPWM[] = {
-PWM9 | TYPE_M,      // motor #1
-PWM10 | TYPE_M,     // motor #2
-PWM11 | TYPE_S,     // servo #1
-PWM12 | TYPE_S,
-PWM13 | TYPE_S,
-PWM14 | TYPE_S,     // servo #4
-PWM5 | TYPE_S,      // servo #5
-PWM6 | TYPE_S,
-PWM7 | TYPE_S,
-PWM8 | TYPE_S,      // servo #8
-PWM2 | TYPE_S,
-PWM3 | TYPE_S,
-PWM4 | TYPE_S,
-PWM15 | TYPE_S,     // servo #12
-PWM1 | TYPE_IP,     // PPM input
-0xFF };
+static const pwmPintData_t multiPWM[] = {
+        { PWM1 | TYPE_IW, 0 },     // input #1
+        { PWM2 | TYPE_IW, 0 },
+        { PWM3 | TYPE_IW, 0 },
+        { PWM4 | TYPE_IW, 0 },
+        { PWM5 | TYPE_IW, 0 },
+        { PWM6 | TYPE_IW, 0 },
+        { PWM7 | TYPE_IW, 0 },
+        { PWM8 | TYPE_IW, 0 },                      // input #8
+        { PWM9 | TYPE_M, TYPE_CAMSTAB2 },           // motor #1 or camstab  or motor #1
+        { PWM10 | TYPE_M, TYPE_CAMSTAB2 },          // motor #2 or camstab  or motor #2
+        { PWM11 | TYPE_M, 0 },                      // motor #3 or motor #3 or motor #3
+        { PWM12 | TYPE_M, 0 },                      // motor #4 or motor #4 or motor #4
+        { PWM13 | TYPE_M, TYPE_CAMSTAB1 },          // motor #5 or motor #1 or camstab
+        { PWM14 | TYPE_M, TYPE_S | TYPE_CAMSTAB1 }, // motor #6 or servo #1 or camstab
+        { 0xFF, 0 } };
 
-static const uint8_t airPWM[] = { PWM1 | TYPE_IW,     // input #1
-PWM2 | TYPE_IW,
-PWM3 | TYPE_IW,
-PWM4 | TYPE_IW,
-PWM5 | TYPE_IW,
-PWM6 | TYPE_IW,
-PWM7 | TYPE_IW,
-PWM8 | TYPE_IW,     // input #8
-PWM9 | TYPE_M,      // motor #1
-PWM10 | TYPE_M,     // motor #2
-PWM11 | TYPE_S,     // servo #1
-PWM12 | TYPE_S,
-PWM13 | TYPE_S,
-PWM14 | TYPE_S,     // servo #4
-0xFF };
+static const pwmPintData_t airNoPWM[] = {
+        { PWM9 | TYPE_M, 0 },      // motor #1
+        { PWM10 | TYPE_M, 0 },     // motor #2
+        { PWM11 | TYPE_S, 0 },
+        { PWM12 | TYPE_S, 0 },
+        { PWM13 | TYPE_S, 0 },
+        { PWM14 | TYPE_S, 0 },
+        { PWM5 | TYPE_S, 0 },      // or motor 1
+        { PWM6 | TYPE_S, 0 },      // or motor 2
+        { PWM7 | TYPE_S, 0 },      // or motor 3
+        { PWM8 | TYPE_S, 0 },      // or motor 4
+        { PWM2 | TYPE_S, 0 },
+        { PWM3 | TYPE_S, 0 },
+        { PWM4 | TYPE_S, TYPE_CAMSTAB2 },   // camstab
+        { PWM15 | TYPE_S, TYPE_CAMSTAB2 },  // camstab
+        { PWM1 | TYPE_IP, 0 },              // PPM input
+        { 0xFF, 0 } };
 
-static const uint8_t * const hardwareMaps[] = { multiPWM, multiNoPWM, airPWM, airNoPWM, };
+static const pwmPintData_t airPWM[] = {
+        { PWM1 | TYPE_IW, 0 },     // input #1
+        { PWM2 | TYPE_IW, 0 },
+        { PWM3 | TYPE_IW, 0 },
+        { PWM4 | TYPE_IW, 0 },
+        { PWM5 | TYPE_IW, 0 },
+        { PWM6 | TYPE_IW, 0 },
+        { PWM7 | TYPE_IW, 0 },
+        { PWM8 | TYPE_IW, 0 },     // input #8
+        { PWM9 | TYPE_S, 0 },      // servo #1
+        { PWM10 | TYPE_S, 0 },
+        { PWM11 | TYPE_S, 0 },
+        { PWM12 | TYPE_S, 0 },
+        { PWM13 | TYPE_S, 0 },     // or motor 2
+        { PWM14 | TYPE_M, 0 },     // motor #1
+        { 0xFF, 0 } };
+
+static const pwmPintData_t * const hardwareMaps[] = { multiPWM, multiNoPWM, airPWM, airNoPWM, };
 
 #define PWM_TIMER_MHZ 1
 #define PWM_BRUSHED_TIMER_MHZ 8
@@ -308,10 +321,16 @@ static void pwmWriteStandard(uint8_t index, uint16_t value)
     *motors[index]->ccr = value;
 }
 
-bool pwmInit(drv_pwm_config_t *config)
+void pwmInit(drv_pwm_config_t *config)
 {
     int i = 0;
-    const uint8_t *hardwareMap;
+    uint8_t afCamStab = TYPE_CAMSTAB2;
+    const pwmPintData_t *hardwareMap;
+
+    // this is tricopter
+    if (config->notorsNumber == 3 && config->noPwmRx) {
+        afCamStab = TYPE_CAMSTAB1;
+    }
 
     // to avoid importing cfg/mcfg
     failsafeThreshold = config->failsafeThreshold;
@@ -319,21 +338,18 @@ bool pwmInit(drv_pwm_config_t *config)
     // this is pretty hacky shit, but it will do for now. array of 4 config maps, [ multiPWM, multiNoPwm, airPWM, airNoPwm ]
     if (config->airplane)
         i = 2; // switch to air hardware config
-    if (config->extraPwm)
+    if (config->noPwmRx)
         i++; // next index is for non PWM reciever
 
     hardwareMap = hardwareMaps[i];
 
     for (i = 0; i < MAX_PORTS; i++) {
-        uint8_t port = hardwareMap[i] & 0x0F;
-        uint8_t mask = hardwareMap[i] & 0xF0;
+        uint8_t port = hardwareMap[i].pin & 0x0F;
+        uint8_t mask = hardwareMap[i].pin & 0xF0;
+        uint8_t af = hardwareMap[i].af;
 
-        if (hardwareMap[i] == 0xFF) // terminator
+        if (hardwareMap[i].pin == 0xFF) // terminator
             break;
-
-        // 12c or uart use PWM 2 and 3
-        if ((config->useUART || config->useI2c) && (port == PWM2 || port == PWM3))
-            continue;
 
         // TODO we dont do sofserial , skip softSerial ports
 //        if (init->useSoftSerial && (port == PWM5 || port == PWM6 || port == PWM7 || port == PWM8))
@@ -344,29 +360,25 @@ bool pwmInit(drv_pwm_config_t *config)
 //        if (init->adcChannel && (init->adcChannel == port))
 //            continue;
 
-        // remap output to servo.
-        if (!config->airplane) {
+        // 12c or uart use PWM 2 and 3 , always pwn 2/3
+        if ((config->useRcUART || config->useI2c) && (port == PWM2 || port == PWM3))
+            continue;
 
-            // in airplane, pwm 9 & 10 are the motor output
-            if (config->useServos) {
-                // remap PWM9+10 as servos
-                if (port == PWM9 || port == PWM10)
-                    mask = TYPE_S;
-            }
-            // in airplane, pwm5 ..8 are allready servo output
-            if (config->extraServos) {
-                // remap PWM5..8 as servos
-                if (port >= PWM5 && port <= PWM8)
-                    mask = TYPE_S;
-            }
+        // if the user want the alternat function for this pin
+        if (config->useAf && (af & (TYPE_M | TYPE_S))) {
+            mask = af & (TYPE_M | TYPE_S);
         }
 
-        // TODO add servo/motor type in mcfg
+        // Camstab demande servo pin , this can vary ( use the alias )
+        if (config->useCamStab && (af & afCamStab)) {
+            mask = TYPE_S;
+        }
+
         // if Serialrx , remap pwm 1 to motor and ignore flex port
         if (config->useSerialrx) {
             if (port == PWM15)
                 continue;
-            if(port == PWM1)
+            if (mask & TYPE_IP)
                 mask = TYPE_M;
         }
 
@@ -394,7 +406,7 @@ bool pwmInit(drv_pwm_config_t *config)
     pwmWritePtr = pwmWriteStandard;
     if (config->motorPwmRate > 500)
         pwmWritePtr = pwmWriteBrushed;
-    return false;
+
 }
 
 void pwmWriteMotor(uint8_t index, uint16_t value)

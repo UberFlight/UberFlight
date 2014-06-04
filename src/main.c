@@ -120,13 +120,13 @@ int main(void)
         else
             pwm_params.airplane = false;
 
-        pwm_params.useUART = feature(FEATURE_GPS) && feature(FEATURE_SERIALRX);   // TODO if core.ports are not empty
-        pwm_params.useSoftSerial = feature(FEATURE_SOFTSERIAL);
-        pwm_params.extraPwm = feature(FEATURE_PPM) || feature(FEATURE_SERIALRX);
+        pwm_params.useRcUART = feature(FEATURE_GPS) && feature(FEATURE_SERIALRX) && core.telemport;
+        pwm_params.useAf = feature(FEATURE_AF);
+        pwm_params.noPwmRx = feature(FEATURE_PPM) || feature(FEATURE_SERIALRX);
         pwm_params.useSerialrx = feature(FEATURE_SERIALRX);
         pwm_params.useI2c = feature(FEATURE_I2C);
-        pwm_params.useServos = core.useServo;
-        pwm_params.extraServos = cfg.gimbal_flags & GIMBAL_FORWARDAUX;
+        pwm_params.useCamStab = feature(FEATURE_SERVO_TILT);
+        pwm_params.notorsNumber = core.notorsNumber;
         pwm_params.motorPwmRate = mcfg.motor_pwm_rate;
         pwm_params.servoPwmRate = mcfg.servo_pwm_rate;
         pwm_params.idlePulse = PULSE_1MS;                  // standard PWM for brushless ESC (default, overridden below)

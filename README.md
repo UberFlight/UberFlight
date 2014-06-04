@@ -4,6 +4,7 @@
 ##Polish me##
 these things work and are tested
 
+* camstab 
 * buzzer
 * motor/servo pwm 14 out
 * standard rx pwm 8 chan
@@ -16,14 +17,15 @@ these things work and are tested
 * mag5983 spi
 * mpu6050 spi
 
-
 ##Test Me##
 these things need to be tested
 
+* fixedwings
 * sbus 
 * sumd
 * gps ublox (rx/tx)
-
+* airplaine mixer
+* guimbal mixer
 
 ##Fix Me##
 * detect acc sensors range

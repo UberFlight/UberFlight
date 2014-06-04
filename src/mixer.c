@@ -180,6 +180,7 @@ void mixerInit(void)
 
     // enable servos for mixes that require them. note, this shifts motor counts.
     core.useServo = mixers[mcfg.mixerConfiguration].useServo;
+
     // if we want camstab/trig, that also enables servos, even if mixer doesn't
     if (feature(FEATURE_SERVO_TILT))
         core.useServo = 1;
@@ -220,6 +221,7 @@ void mixerInit(void)
     else
         f.FIXED_WING = 0;
 
+    core.notorsNumber = numberMotor;
     mixerResetMotors();
 }
 
