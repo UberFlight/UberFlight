@@ -20,11 +20,10 @@ these things work and are tested
 ##Test Me##
 these things need to be tested
 
-* fixedwings
 * sbus 
 * sumd
 * gps ublox (rx/tx)
-* airplaine mixer
+* airplane
 * guimbal mixer
 
 ##Fix Me##
