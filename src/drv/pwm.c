@@ -65,7 +65,7 @@ static uint16_t failsafeThreshold = 985;
 // external vars (ugh)
 extern int16_t failsafeCnt;
 
-static const uint8_t multiNoPWM[] = { PWM1 | TYPE_IP,     // PPM input
+static const uint8_t multiNoPWM[] = {
 PWM9 | TYPE_M,      // Swap to servo if needed
 PWM10 | TYPE_M,     // Swap to servo if needed
 PWM11 | TYPE_M,
@@ -80,6 +80,7 @@ PWM2 | TYPE_M,      // Swap to servo if needed
 PWM3 | TYPE_M,      // Swap to servo if needed
 PWM4 | TYPE_M,      // Swap to servo if needed
 PWM15 | TYPE_M,      // Swap to servo if needed
+PWM1 | TYPE_IP,     // PPM input
 0xFF };
 
 static const uint8_t multiPWM[] = { PWM1 | TYPE_IW,     // input #1
@@ -98,7 +99,7 @@ PWM13 | TYPE_M,
 PWM14 | TYPE_M,     // motor #4 or #6
 0xFF };
 
-static const uint8_t airNoPWM[] = { PWM1 | TYPE_IP,     // PPM input
+static const uint8_t airNoPWM[] = {
 PWM9 | TYPE_M,      // motor #1
 PWM10 | TYPE_M,     // motor #2
 PWM11 | TYPE_S,     // servo #1
@@ -113,6 +114,7 @@ PWM2 | TYPE_S,
 PWM3 | TYPE_S,
 PWM4 | TYPE_S,
 PWM15 | TYPE_S,     // servo #12
+PWM1 | TYPE_IP,     // PPM input
 0xFF };
 
 static const uint8_t airPWM[] = { PWM1 | TYPE_IW,     // input #1
