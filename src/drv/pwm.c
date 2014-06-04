@@ -90,8 +90,8 @@ static const pwmPintData_t multiNoPWM[] = {
         { PWM2 | TYPE_M, 0 },
         { PWM3 | TYPE_M, 0 },
         { PWM4 | TYPE_M, 0 },
-        { PWM15 | TYPE_M, 0 },
-        { PWM1 | TYPE_IP, 0 },     // PPM input
+        { PWM15 | TYPE_M, 0 },     // Motor output , will be replaced by pwm1 whenu sing serialrx
+        { PWM1 | TYPE_IP, 0 },     // PPM input , or motor output when replaced by pwm15
         { 0xFF, 0 } };
 
 static const pwmPintData_t multiPWM[] = {
