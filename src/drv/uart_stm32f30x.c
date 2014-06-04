@@ -158,6 +158,25 @@ void DMA1_Channel4_IRQHandler(void)
     handleUsartTxDma(s);
 }
 
+// USART1 Rx DMA Handler
+void DMA1_Channel5_IRQHandler(void)
+{
+    uartPort_t *s = &uartPort1;
+    DMA_ClearITPendingBit(DMA1_IT_TC5);
+    DMA_Cmd(DMA1_Channel5, DISABLE);
+    handleUsartTxDma(s);
+}
+
+// USART2 Rx DMA Handler
+void DMA1_Channel6_IRQHandler(void)
+{
+    uartPort_t *s = &uartPort2;
+    DMA_ClearITPendingBit(DMA1_IT_TC6);
+    DMA_Cmd(DMA1_Channel6, DISABLE);
+    handleUsartTxDma(s);
+}
+
+
 // USART2 Tx DMA Handler
 void DMA1_Channel7_IRQHandler(void)
 {
@@ -166,6 +185,7 @@ void DMA1_Channel7_IRQHandler(void)
     DMA_Cmd(DMA1_Channel7, DISABLE);
     handleUsartTxDma(s);
 }
+
 
 void usartIrqHandler(uartPort_t *s)
 {
