@@ -44,7 +44,7 @@ int main(void)
     core.mainport = uartOpen(USART1, NULL, mcfg.serial_baudrate, MODE_RXTX,SERIAL_NOT_INVERTED);
 #endif
 
-    // set initial flight constant like gravition or other user defined setting
+
 
     {
 
@@ -97,7 +97,7 @@ int main(void)
     mspInit();                  // this will configure the aux box based on features and detected sensors
 
     mixerInit();                // this will set core.useServo var depending on mixer type
-    imuInit();
+    imuInit();                  // set initial flight constant like gravitation or other user defined setting
 
     {
         // TODO fixme configure power ADC
