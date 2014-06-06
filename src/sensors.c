@@ -126,25 +126,23 @@ bool sensorsAutodetect(void)
 //    return true;
 
     if (feature(FEATURE_I2C)) {
-        //        mpu6050Detect(&acc, &gyro, mcfg.gyro_lpf, &core.mpu6050_scale);
 
         if (!hmc5883lDetectI2c(&mag))
             sensorsClear(SENSOR_MAG);
 
-        if (!bmp085Detect(&baro))
-            sensorsClear(SENSOR_BARO);
     } else {
         if (!hmc5983DetectSpi(&mag, mcfg.mag_align))
             sensorsClear(SENSOR_MAG);
 
-        if (!ms5611DetectSpi(&baro))
-            sensorsClear(SENSOR_BARO);
     }
 
     if (!mpu6000DetectSpi(&acc, &gyro, mcfg.gyro_lpf, &core.mpu6050_scale)) {
         sensorsClear(SENSOR_ACC);
         sensorsClear(SENSOR_GYRO);
     }
+
+    if (!ms5611DetectSpi(&baro))
+        sensorsClear(SENSOR_BARO);
 
     // Now time to init things, acc first
     if (sensors(SENSOR_ACC))

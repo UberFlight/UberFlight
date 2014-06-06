@@ -98,10 +98,11 @@ void gpioStart(void)
 
         // 2x5 header rc pin
         GPIO_PinAFConfig(GPIOA, GPIO_PinSource8, GPIO_AF_6);
-        if (feature(FEATURE_I2C)) {
-            GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_4);
-            GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_4);
-        } else {
+//        if (feature(FEATURE_I2C)) {
+//            GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_4);
+//            GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_4);
+//        } else
+        {
             GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_6);
             GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_6);
         }

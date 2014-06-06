@@ -124,7 +124,7 @@ int main(void)
         pwm_params.useAf = feature(FEATURE_AF);
         pwm_params.noPwmRx = feature(FEATURE_PPM) || feature(FEATURE_SERIALRX);
         pwm_params.useSerialrx = feature(FEATURE_SERIALRX);
-        pwm_params.useI2c = feature(FEATURE_I2C);
+        pwm_params.useI2c = false;//feature(FEATURE_I2C);
         pwm_params.useCamStab = feature(FEATURE_SERVO_TILT) || (mcfg.mixerConfiguration == MULTITYPE_GIMBAL);
         pwm_params.notorsNumber = core.notorsNumber;
         pwm_params.useTri = mcfg.mixerConfiguration == MULTITYPE_TRI;
