@@ -90,8 +90,9 @@ static const pwmPintData_t multiNoPWM[] = {
         { PWM2 | TYPE_M, 0 },
         { PWM3 | TYPE_M, 0 },
         { PWM4 | TYPE_M, 0 },
-        //{ PWM15 | TYPE_M, 0 },     // Motor output , will be replaced by pwm1 when using serialrx
-        { PWM1 | TYPE_IP, 0 },     // PPM input , or motor output when replaced by pwm15
+        //{ PWM15 | TYPE_M, 0 },     // Motor output , will be replaced by pwm1 when using serialrx ,
+        //disabled cause it use timer2 (same as potential servo)
+        { PWM1 | TYPE_IP, 0 },     // PPM input , or motor output , if ppm then motor is when replaced by pwm15
         { 0xFF, 0 } };
 
 static const pwmPintData_t multiPWM[] = {
@@ -360,7 +361,7 @@ void pwmInit(drv_pwm_config_t *config)
 //        if (init->adcChannel && (init->adcChannel == port))
 //            continue;
 
-        // if Serialrx , remap pwm 1 to motor and ignore flex port
+        // if Serialrx , remap pwm 1 to motor and ignore flex port (currently unset, so ppm is 13output max)
         if (config->useSerialrx) {
             if (port == PWM15)
                 continue;
