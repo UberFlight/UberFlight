@@ -118,10 +118,10 @@ static const pwmPintData_t airNoPWM[] = {
         { PWM12 | TYPE_S, 0 },
         { PWM13 | TYPE_S, 0 },
         { PWM14 | TYPE_S, 0 },
-        { PWM5 | TYPE_S, 0 },      // or motor 1
-        { PWM6 | TYPE_S, 0 },      // or motor 2
-        { PWM7 | TYPE_S, 0 },      // or motor 3
-        { PWM8 | TYPE_S, 0 },      // or motor 4
+        { PWM5 | TYPE_S, TYPE_M },      // or motor 1
+        { PWM6 | TYPE_S, TYPE_M },      // or motor 2
+        { PWM7 | TYPE_S, TYPE_M },      // or motor 3
+        { PWM8 | TYPE_S, TYPE_M },      // or motor 4
         { PWM2 | TYPE_S, 0 },
         { PWM3 | TYPE_S, 0 },
         { PWM4 | TYPE_S, TYPE_CAMSTAB2 },   // camstab
@@ -142,7 +142,7 @@ static const pwmPintData_t airPWM[] = {
         { PWM10 | TYPE_S, 0 },
         { PWM11 | TYPE_S, 0 },
         { PWM12 | TYPE_S, 0 },
-        { PWM13 | TYPE_S, 0 },     // or motor 2
+        { PWM13 | TYPE_S, TYPE_M },     // or motor 2
         { PWM14 | TYPE_M, 0 },     // motor #1
         { 0xFF, 0 } };
 
@@ -328,7 +328,7 @@ void pwmInit(drv_pwm_config_t *config)
     const pwmPintData_t *hardwareMap;
 
     if (!config->airplane) {
-        // this is tricopter without pwm rx,  set camstab alias
+        // this is tricopter,  set camstab alias
         if (config->notorsNumber == 3) {
             afCamStab = TYPE_CAMSTAB1;
         }

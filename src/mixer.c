@@ -252,57 +252,62 @@ void mixerLoadMix(int index)
 
 void writeServos(void)
 {
+    int i = 0; // the servo number
+
     if (!core.useServo)
         return;
 
+
+    // Two servos for SERVO_TILT, if enabled they come first
+    if (feature(FEATURE_SERVO_TILT)) {
+        pwmWriteServo(i++, servo[0]);
+        pwmWriteServo(i++, servo[1]);
+    }
+
     switch (mcfg.mixerConfiguration) {
         case MULTITYPE_BI:
-            pwmWriteServo(0, servo[4]);
-            pwmWriteServo(1, servo[5]);
+            pwmWriteServo(i++, servo[4]);
+            pwmWriteServo(i++, servo[5]);
             break;
 
         case MULTITYPE_TRI:
+
             if (cfg.tri_unarmed_servo) {
                 // if unarmed flag set, we always move servo
-                pwmWriteServo(0, servo[5]);
+                pwmWriteServo(i, servo[5]);
             } else {
                 // otherwise, only move servo when copter is armed
                 if (f.ARMED)
-                    pwmWriteServo(0, servo[5]);
+                    pwmWriteServo(i, servo[5]);
                 else
-                    pwmWriteServo(0, 0); // kill servo signal completely.
+                    pwmWriteServo(i, 0); // kill servo signal completely.
             }
             break;
 
         case MULTITYPE_FLYING_WING:
-            pwmWriteServo(0, servo[3]);
-            pwmWriteServo(1, servo[4]);
+            pwmWriteServo(i++, servo[3]);
+            pwmWriteServo(i++, servo[4]);
             break;
 
         case MULTITYPE_GIMBAL:
-            pwmWriteServo(0, servo[0]);
-            pwmWriteServo(1, servo[1]);
+            pwmWriteServo(i++, servo[0]);
+            pwmWriteServo(i++, servo[1]);
             break;
 
         case MULTITYPE_DUALCOPTER:
-            pwmWriteServo(0, servo[4]);
-            pwmWriteServo(1, servo[5]);
+            pwmWriteServo(i++, servo[4]);
+            pwmWriteServo(i++, servo[5]);
             break;
 
         case MULTITYPE_AIRPLANE:
         case MULTITYPE_SINGLECOPTER:
-            pwmWriteServo(0, servo[3]);
-            pwmWriteServo(1, servo[4]);
-            pwmWriteServo(2, servo[5]);
-            pwmWriteServo(3, servo[6]);
+            pwmWriteServo(i++, servo[3]);
+            pwmWriteServo(i++, servo[4]);
+            pwmWriteServo(i++, servo[5]);
+            pwmWriteServo(i++, servo[6]);
             break;
 
         default:
-            // Two servos for SERVO_TILT, if enabled
-            if (feature(FEATURE_SERVO_TILT)) {
-                pwmWriteServo(0, servo[0]);
-                pwmWriteServo(1, servo[1]);
-            }
             break;
     }
 }
