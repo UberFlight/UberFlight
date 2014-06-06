@@ -12,7 +12,8 @@ these things work and are tested
 * ppm rx
 * usb cli/msp
 * bluetooth/433mhz msp on telemport 
-* gps nmea (rx) on telemport , rc pin
+* gps nmea (rx) on telemport, rc pin
+* gps ublox (rx/tx) on telemport, rc pin
 * baro5611 spi 
 * mag5983 spi
 * mpu6050 spi
@@ -22,7 +23,6 @@ these things need to be tested
 
 * sbus 
 * sumd
-* gps ublox (rx/tx)
 * airplane
 * guimbal mixer
 
