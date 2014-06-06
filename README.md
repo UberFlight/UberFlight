@@ -4,6 +4,7 @@
 ##Polish me##
 these things work and are tested
 
+* mixer : tri , quad , hexa, guimbal
 * camstab 
 * buzzer
 * motor/servo pwm 14 out
@@ -24,7 +25,7 @@ these things need to be tested
 * sbus 
 * sumd
 * airplane
-* guimbal mixer
+
 
 ##Fix Me##
 * detect acc sensors range
