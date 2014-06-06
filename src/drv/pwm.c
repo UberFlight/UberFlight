@@ -77,12 +77,12 @@ extern int16_t failsafeCnt;
 
 
 static const pwmPintData_t multiNoPWM[] = {
-        { PWM9 | TYPE_M, 0 },
-        { PWM10 | TYPE_M, 0 },
+        { PWM9 | TYPE_M, TYPE_CAMSTAB1 },
+        { PWM10 | TYPE_M, TYPE_CAMSTAB1 },
         { PWM11 | TYPE_M, 0 },
         { PWM12 | TYPE_M, 0 },
         { PWM13 | TYPE_M, TYPE_CAMSTAB2 },     // camstab
-        { PWM14 | TYPE_M, TYPE_CAMSTAB2 },     // camstab
+        { PWM14 | TYPE_M, TYPE_S |TYPE_CAMSTAB2 },     // camstab
         { PWM5 | TYPE_M, TYPE_S },      // or servo 1
         { PWM6 | TYPE_M, TYPE_S },      // or servo 2
         { PWM7 | TYPE_M, TYPE_S },      // or servo 3
@@ -103,12 +103,12 @@ static const pwmPintData_t multiPWM[] = {
         { PWM6 | TYPE_IW, 0 },
         { PWM7 | TYPE_IW, 0 },
         { PWM8 | TYPE_IW, 0 },                      // input #8
-        { PWM9 | TYPE_M, TYPE_CAMSTAB2 },           // motor #1 or camstab  or motor #1
-        { PWM10 | TYPE_M, TYPE_CAMSTAB2 },          // motor #2 or camstab  or motor #2
+        { PWM9 | TYPE_M, TYPE_CAMSTAB1 },           // motor #1 or camstab  or motor #1
+        { PWM10 | TYPE_M, TYPE_CAMSTAB1 },          // motor #2 or camstab  or motor #2
         { PWM11 | TYPE_M, 0 },                      // motor #3 or motor #3 or motor #3
         { PWM12 | TYPE_M, 0 },                      // motor #4 or motor #4 or motor #4
-        { PWM13 | TYPE_M, TYPE_CAMSTAB1 },          // motor #5 or motor #1 or camstab
-        { PWM14 | TYPE_M, TYPE_S | TYPE_CAMSTAB1 }, // motor #6 or servo #1 or camstab
+        { PWM13 | TYPE_M, TYPE_CAMSTAB2 },          // motor #5 or motor #1 or camstab
+        { PWM14 | TYPE_M, TYPE_S | TYPE_CAMSTAB2 }, // motor #6 or servo #1 or camstab
         { 0xFF, 0 } };
 
 static const pwmPintData_t airNoPWM[] = {
@@ -327,9 +327,11 @@ void pwmInit(drv_pwm_config_t *config)
     uint8_t afCamStab = TYPE_CAMSTAB2;
     const pwmPintData_t *hardwareMap;
 
-    // this is tricopter
-    if (config->notorsNumber == 3 && config->noPwmRx) {
-        afCamStab = TYPE_CAMSTAB1;
+    if (!config->airplane) {
+        // this is tricopter without pwm rx,  set camstab alias
+        if (config->notorsNumber == 3) {
+            afCamStab = TYPE_CAMSTAB1;
+        }
     }
 
     // to avoid importing cfg/mcfg
@@ -346,7 +348,7 @@ void pwmInit(drv_pwm_config_t *config)
     for (i = 0; i < MAX_PORTS; i++) {
         uint8_t port = hardwareMap[i].pin & 0x0F;
         uint8_t mask = hardwareMap[i].pin & 0xF0;
-        uint8_t af = hardwareMap[i].af;
+        uint8_t af = hardwareMap[i].af & 0xFF;
 
         if (hardwareMap[i].pin == 0xFF) // terminator
             break;
