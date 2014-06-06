@@ -819,11 +819,13 @@ void loop(void)
         loopTime = currentTime + mcfg.looptime;
 
         computeIMU();
-        annexCode();
         // Measure loop rate just afer reading the sensors
         currentTime = micros();
-        cycleTime = (int32_t)(currentTime - previousTime);
+        cycleTime = (uint16_t)(currentTime - previousTime);
         previousTime = currentTime;
+
+        // non imu critical, serial com , todo move temperatur reading
+        annexCode();
 
 #ifdef MAG
         if (sensors(SENSOR_MAG)) {
