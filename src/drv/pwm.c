@@ -1,5 +1,5 @@
 #include "board.h"
-
+#include "mw.h"
 /*
  TODO redo doc about Configuration maps:
 
@@ -90,7 +90,7 @@ static const pwmPintData_t multiNoPWM[] = {
         { PWM2 | TYPE_M, 0 },
         { PWM3 | TYPE_M, 0 },
         { PWM4 | TYPE_M, 0 },
-        { PWM15 | TYPE_M, 0 },     // Motor output , will be replaced by pwm1 whenu sing serialrx
+        //{ PWM15 | TYPE_M, 0 },     // Motor output , will be replaced by pwm1 when using serialrx
         { PWM1 | TYPE_IP, 0 },     // PPM input , or motor output when replaced by pwm15
         { 0xFF, 0 } };
 
@@ -123,9 +123,9 @@ static const pwmPintData_t airNoPWM[] = {
         { PWM7 | TYPE_S, TYPE_M },      // or motor 3
         { PWM8 | TYPE_S, TYPE_M },      // or motor 4
         { PWM2 | TYPE_S, 0 },
-        { PWM3 | TYPE_S, 0 },
-        { PWM4 | TYPE_S, TYPE_CAMSTAB2 },   // camstab
-        { PWM15 | TYPE_S, TYPE_CAMSTAB2 },  // camstab
+        { PWM3 | TYPE_S, TYPE_CAMSTAB2 }, // camstab
+        { PWM4 | TYPE_S, TYPE_CAMSTAB2 }, // camstab
+//        { PWM15 | TYPE_S, TYPE_CAMSTAB2 },  c
         { PWM1 | TYPE_IP, 0 },              // PPM input
         { 0xFF, 0 } };
 
@@ -324,14 +324,12 @@ static void pwmWriteStandard(uint8_t index, uint16_t value)
 void pwmInit(drv_pwm_config_t *config)
 {
     int i = 0;
-    uint8_t afCamStab = TYPE_CAMSTAB2;
+    uint8_t CamStab = TYPE_CAMSTAB2;
     const pwmPintData_t *hardwareMap;
 
-    if (!config->airplane) {
+    if (config->useTri) {
         // this is tricopter,  set camstab alias
-        if (config->notorsNumber == 3) {
-            afCamStab = TYPE_CAMSTAB1;
-        }
+            CamStab = TYPE_CAMSTAB1;
     }
 
     // to avoid importing cfg/mcfg
@@ -348,8 +346,8 @@ void pwmInit(drv_pwm_config_t *config)
     for (i = 0; i < MAX_PORTS; i++) {
         uint8_t port = hardwareMap[i].pin & 0x0F;
         uint8_t mask = hardwareMap[i].pin & 0xF0;
-        uint8_t af = hardwareMap[i].af & 0xFF;
-
+        uint8_t afmask = hardwareMap[i].af & 0xF0;
+        uint8_t afcamstab = hardwareMap[i].af & 0x0F;
         if (hardwareMap[i].pin == 0xFF) // terminator
             break;
 
@@ -375,12 +373,16 @@ void pwmInit(drv_pwm_config_t *config)
             continue;
 
         // if the user want the alternate function for this pin
-        if (config->useAf && (af & (TYPE_M | TYPE_S))) {
-            mask = af & (TYPE_M | TYPE_S);
+        if (config->useAf && (afmask & (TYPE_M | TYPE_S))) {
+            mask = afmask ;
         }
 
-        // Camstab demande servo pin , this can vary ( use the alias )
-        if (config->useCamStab && (af & afCamStab)) {
+        if (config->useTri && (port == PWM14)) {
+            // this is tricopter,  set tail servo
+            mask = TYPE_S;
+        }
+        // Camstab demande servo pin , use the alias to find the pin
+        if (config->useCamStab && (afcamstab & CamStab)) {
             mask = TYPE_S;
         }
 
