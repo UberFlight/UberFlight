@@ -360,11 +360,19 @@ void pwmInit(drv_pwm_config_t *config)
 //        if (init->adcChannel && (init->adcChannel == port))
 //            continue;
 
+        // if Serialrx , remap pwm 1 to motor and ignore flex port
+        if (config->useSerialrx) {
+            if (port == PWM15)
+                continue;
+            if ((port == PWM1) && (mask & TYPE_IP))
+                mask = TYPE_M;
+        }
+
         // 12c or uart use PWM 2 and 3 , always pwn 2/3
         if ((config->useRcUART || config->useI2c) && (port == PWM2 || port == PWM3))
             continue;
 
-        // if the user want the alternat function for this pin
+        // if the user want the alternate function for this pin
         if (config->useAf && (af & (TYPE_M | TYPE_S))) {
             mask = af & (TYPE_M | TYPE_S);
         }
@@ -374,13 +382,6 @@ void pwmInit(drv_pwm_config_t *config)
             mask = TYPE_S;
         }
 
-        // if Serialrx , remap pwm 1 to motor and ignore flex port
-        if (config->useSerialrx) {
-            if (port == PWM15)
-                continue;
-            if (mask & TYPE_IP)
-                mask = TYPE_M;
-        }
 
         if (mask & TYPE_IP) {
             pwmInConfig(port, ppmCallback, 0);
