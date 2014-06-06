@@ -67,6 +67,8 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback,
     } else {
         return (serialPort_t *)s;
     }
+    s->txDMAEmpty = true;
+    
     // common serial initialisation code should move to serialPort::init()
     s->port.rxBufferHead = s->port.rxBufferTail = 0;
     s->port.txBufferHead = s->port.txBufferTail = 0;
@@ -187,7 +189,6 @@ uint32_t uartTotalBytesWaiting(serialPort_t *instance)
         return (uint32_t)s->port.rxBufferTail != s->port.rxBufferHead;
 }
 
-// BUGBUG TODO TODO FIXME - What is the bug?
 bool isUartTransmitBufferEmpty(serialPort_t *instance)
 {
     uartPort_t *s = (uartPort_t *)instance;
