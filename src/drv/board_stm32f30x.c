@@ -58,8 +58,8 @@ static void cycleCounterInit(void)
     RCC_GetClocksFreq(&clocks);
     usTicks = clocks.SYSCLK_Frequency / 1000000;
 
-    // enable DWT access
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+//    // enable DWT access
+//    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
 
 }
 

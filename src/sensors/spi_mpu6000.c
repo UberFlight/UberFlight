@@ -168,9 +168,10 @@ bool mpu6000DetectSpi(sensor_t *acc, sensor_t *gyro, uint16_t lpf, uint8_t *scal
 
     delayMicroseconds(1);
 
+
     ENABLE_MPU6000;
-    spiTransferByte(MPU6000_SMPLRT_DIV);          // Accel Sample Rate 1000 Hz, Gyro Sample Rate 8000 Hz
-    spiTransferByte(0x00);
+    spiTransferByte(MPU6000_SMPLRT_DIV);          // Accel Sample Rate 1kHz
+    spiTransferByte(0x00);                        // Gyroscope Output Rate =  1kHz when the DLPF is enabled
     DISABLE_MPU6000;
 
     delayMicroseconds(1);
