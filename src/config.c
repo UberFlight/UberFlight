@@ -303,17 +303,17 @@ static void resetConf(void)
     mcfg.softserial_baudrate = 9600;
     mcfg.softserial_1_inverted = 0;
     mcfg.softserial_2_inverted = 0;
-    mcfg.looptime = 3500;
+    mcfg.looptime = 1000;
     mcfg.emf_avoidance = 0;
     mcfg.rssi_aux_channel = 0;
 
     cfg.pidController = 0;
     cfg.P8[ROLL] = 40;
-    cfg.I8[ROLL] = 30;
-    cfg.D8[ROLL] = 23;
+    cfg.I8[ROLL] = 10;
+    cfg.D8[ROLL] = 32;
     cfg.P8[PITCH] = 40;
-    cfg.I8[PITCH] = 30;
-    cfg.D8[PITCH] = 23;
+    cfg.I8[PITCH] = 10;
+    cfg.D8[PITCH] = 32;
     cfg.P8[YAW] = 85;
     cfg.I8[YAW] = 45;
     cfg.D8[YAW] = 0;
@@ -329,7 +329,7 @@ static void resetConf(void)
     cfg.P8[PIDNAVR] = 14; // NAV_P * 10;
     cfg.I8[PIDNAVR] = 20; // NAV_I * 100;
     cfg.D8[PIDNAVR] = 80; // NAV_D * 1000;
-    cfg.P8[PIDLEVEL] = 90;
+    cfg.P8[PIDLEVEL] = 60;
     cfg.I8[PIDLEVEL] = 10;
     cfg.D8[PIDLEVEL] = 100;
     cfg.P8[PIDMAG] = 40;

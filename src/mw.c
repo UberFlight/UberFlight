@@ -816,10 +816,10 @@ void loop(void)
 
     currentTime = micros();
     if (mcfg.looptime == 0 || (int32_t)(currentTime - loopTime) >= 0) {
-        loopTime = currentTime + mcfg.looptime;
 
         computeIMU();
         // Measure loop rate just afer reading the sensors
+        loopTime = currentTime + (uint32_t)mcfg.looptime;
         currentTime = micros();
         cycleTime = (uint16_t)(currentTime - previousTime);
         previousTime = currentTime;
