@@ -326,7 +326,7 @@ static void pidMultiWii(void)
             PTermGYRO = rcCommand[axis];
 
             errorGyroI[axis] = constrain(errorGyroI[axis] + error, -16000, +16000); // WindUp
-            if (abs(gyroData[axis]) > 640)
+            if ((abs(gyroData[axis]) > 640) || (abs(rcCommand[axis]) > YAW_DEADBAND))
                 errorGyroI[axis] = 0;
             ITermGYRO = (errorGyroI[axis] / 125 * cfg.I8[axis]) >> 6;
         }
@@ -369,8 +369,8 @@ static void pidRewrite(void)
     // ----------PID controller----------
     for (axis = 0; axis < 3; axis++) {
         // -----Get the desired angle rate depending on flight mode
-        if (axis == 2) { // YAW is always gyro-controlled (MAG correction is applied to rcCommand)
-            AngleRateTmp = (((int32_t)(cfg.yawRate + 27) * rcCommand[2]) >> 5);
+        if (axis == YAW) { // YAW is always gyro-controlled (MAG correction is applied to rcCommand)
+            AngleRateTmp = (((int32_t)(cfg.yawRate + 27) * rcCommand[axis]) >> 5);
         } else {
             // calculate error and limit the angle to 50 degrees max inclination
             errorAngle = (constrain(rcCommand[axis] + GPS_angle[axis], -500, +500) - angle[axis] + cfg.angleTrim[axis]) / 10.0f; // 16 bits is ok here
@@ -829,7 +829,7 @@ void loop(void)
 
 #ifdef MAG
         if (sensors(SENSOR_MAG)) {
-            if (abs(rcCommand[YAW]) < 70 && f.MAG_MODE) {
+            if (abs(rcCommand[YAW]) < YAW_DEADBAND && f.MAG_MODE) {
                 int16_t dif = heading - magHold;
                 if (dif <= -180)
                     dif += 360;

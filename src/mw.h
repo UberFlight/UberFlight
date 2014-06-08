@@ -10,6 +10,8 @@
 
 #define RC_CHANS    (18)
 
+#define YAW_DEADBAND 50
+
 // Serial GPS only variables
 // navigation mode
 typedef enum NavigationMode {
