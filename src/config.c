@@ -310,10 +310,10 @@ static void resetConf(void)
     cfg.pidController = 0;
     cfg.P8[ROLL] = 40;
     cfg.I8[ROLL] = 10;
-    cfg.D8[ROLL] = 32;
+    cfg.D8[ROLL] = 69;
     cfg.P8[PITCH] = 40;
     cfg.I8[PITCH] = 10;
-    cfg.D8[PITCH] = 32;
+    cfg.D8[PITCH] = 69;
     cfg.P8[YAW] = 85;
     cfg.I8[YAW] = 45;
     cfg.D8[YAW] = 0;
