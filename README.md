@@ -5,7 +5,7 @@
 these things work and are tested
 
 * 1khz imu and default pid values
-* headfree gyro
+* headfree
 * mixer : tri , quad , hexa, guimbal
 * camstab 
 * buzzer
@@ -31,7 +31,6 @@ these things need to be tested
 
 ##Fix Me##
 * detect acc sensors range
-* headfree mag
 * led1 is not present
 * i2c on rc 3/4 pin, need configuration for offest rcpin
 * vbat monitor
