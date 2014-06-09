@@ -84,6 +84,9 @@
 #define BITS_FS_8G                  0x10
 #define BITS_FS_16G                 0x18
 #define BITS_FS_MASK                0x18
+#define BITS_DLPF_CFG_256HZ         0x00
+#define BITS_DLPF_CFG_188HZ         0x01
+#define BITS_DLPF_CFG_98HZ          0x02
 #define BITS_DLPF_CFG_42HZ          0x03
 #define BITS_DLPF_CFG_20HZ          0x04
 #define BITS_DLPF_CFG_10HZ          0x05
@@ -107,29 +110,58 @@ static sensor_align_e accAlign = CW180_DEG;
 
 void mpu6000GyroInit(sensor_align_e align)
 {
-    if (align > 0){
+    if (align > 0) {
         gyroAlign = align;
     }
 }
 
 void mpu6000AccInit(sensor_align_e align)
 {
-    if (align > 0){
+    if (align > 0) {
         accAlign = align;
     }
     // Fixme
 //    if (mpuAccelHalf)
 //        acc_1G = 255 * 8;
 //    else
-        acc_1G = 512 * 8;
+    acc_1G = 512 * 8;
 }
 
 bool mpu6000DetectSpi(sensor_t *acc, sensor_t *gyro, uint16_t lpf, uint8_t *scale)
 {
+    uint8_t mpuLowPassFilter = BITS_DLPF_CFG_42HZ;
     int16_t data[3];
     spiResetErrorCounter();
 
-    setSPIdivisor( 128);  // 0.5625 MHz SPI Clock
+    // default lpf is 42Hz
+    switch (lpf) {
+        case 256:
+            mpuLowPassFilter = BITS_DLPF_CFG_256HZ;
+            break;
+        case 188:
+            mpuLowPassFilter = BITS_DLPF_CFG_188HZ;
+            break;
+        case 98:
+            mpuLowPassFilter = BITS_DLPF_CFG_98HZ;
+            break;
+        default:
+        case 42:
+            mpuLowPassFilter = BITS_DLPF_CFG_42HZ;
+            break;
+        case 20:
+            mpuLowPassFilter = BITS_DLPF_CFG_20HZ;
+            break;
+        case 10:
+            mpuLowPassFilter = BITS_DLPF_CFG_10HZ;
+            break;
+        case 5:
+            mpuLowPassFilter = BITS_DLPF_CFG_5HZ;
+        case 0:
+            mpuLowPassFilter = BITS_DLPF_CFG_2100HZ_NOLPF;
+            break;
+    }
+
+    setSPIdivisor(128);  // 0.5625 MHz SPI Clock
 
     ///////////////////////////////////
 
@@ -168,7 +200,6 @@ bool mpu6000DetectSpi(sensor_t *acc, sensor_t *gyro, uint16_t lpf, uint8_t *scal
 
     delayMicroseconds(1);
 
-
     ENABLE_MPU6000;
     spiTransferByte(MPU6000_SMPLRT_DIV);          // Accel Sample Rate 1kHz
     spiTransferByte(0x00);                        // Gyroscope Output Rate =  1kHz when the DLPF is enabled
@@ -178,7 +209,7 @@ bool mpu6000DetectSpi(sensor_t *acc, sensor_t *gyro, uint16_t lpf, uint8_t *scal
 
     ENABLE_MPU6000;
     spiTransferByte(MPU6000_CONFIG);              // Accel and Gyro DLPF Setting
-    spiTransferByte(BITS_DLPF_CFG_42HZ);
+    spiTransferByte(mpuLowPassFilter);
     DISABLE_MPU6000;
 
     delayMicroseconds(1);
