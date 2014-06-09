@@ -4,7 +4,7 @@
 ##Polish me##
 these things work and are tested
 
-* 1khz imu and default pid values
+* altitude hold
 * headfree
 * mixer : tri , quad , hexa, guimbal
 * camstab 
