@@ -168,9 +168,9 @@ void annexCode(void)
 
             if (mcfg.power_adc_channel > 0) {
                 amperageRaw -= amperageRaw / 8;
-                amperageRaw += adcGetChannel(ADC_EXTERNAL_CURRENT);
+                amperageRaw += adcGetChannel(ADC_EXTERNAL2);
                 amperage = currentSensorToCentiamps(amperageRaw / 8);
-                mAhdrawnRaw += (amperage * vbatCycleTime) / 1000; // will overflow at ~11000mAh
+                mAhdrawnRaw += (amperage * vbatCycleTime) / 1000;
                 mAhdrawn = mAhdrawnRaw / (3600 * 100);
                 vbatCycleTime = 0;
             }
