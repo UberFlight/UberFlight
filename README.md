@@ -4,6 +4,7 @@
 ##Polish me##
 these things work and are tested
 
+* external i2c (mag & baro)
 * altitude hold
 * headfree
 * mixer : tri , quad , hexa, guimbal
@@ -32,7 +33,7 @@ these things need to be tested
 ##Fix Me##
 * detect acc sensors range
 * led1 is not present
-* i2c on rc 3/4 pin, need configuration for offest rcpin
+* external i2c, need configuration to offest rcpin for pwmrx
 * vbat monitor
 * softserial
 * non msp telemetry
