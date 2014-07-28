@@ -224,8 +224,8 @@ static void GPS_calc_nav_rate(int max_speed);
 static void GPS_update_crosstrack(void);
 static bool UBLOX_parse_gps(void);
 static int16_t GPS_calc_desired_speed(int16_t max_speed, bool _slow);
-int32_t wrap_18000(int32_t error);
-static int32_t wrap_36000(int32_t angle);
+int32_t wrap_18000(int32_t x);
+static int32_t wrap_36000(int32_t x);
 
 typedef struct {
     int16_t last_velocity;
@@ -761,22 +761,22 @@ static int16_t GPS_calc_desired_speed(int16_t max_speed, bool _slow)
 ////////////////////////////////////////////////////////////////////////////////////
 // Utilities
 //
-int32_t wrap_18000(int32_t error)
+int32_t wrap_18000(int32_t x)
 {
-    if (error > 18000)
-        error -= 36000;
-    if (error < -18000)
-        error += 36000;
-    return error;
+    if (x > 18000)
+        x -= 36000;
+    if (x < -18000)
+        x += 36000;
+    return x;
 }
 
-static int32_t wrap_36000(int32_t angle)
+static int32_t wrap_36000(int32_t x)
 {
-    if (angle > 36000)
-        angle -= 36000;
-    if (angle < 0)
-        angle += 36000;
-    return angle;
+    if (x > 36000)
+        x -= 36000;
+    if (x < 0)
+        x += 36000;
+    return x;
 }
 
 // This code is used for parsing NMEA data

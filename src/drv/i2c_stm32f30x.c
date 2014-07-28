@@ -229,7 +229,7 @@ void i2cInitPort(I2C_TypeDef *I2Cx)
 
 void i2cInit(I2C_TypeDef *I2C)
 {
-    i2cInitPort(BOARD_I2C_PORT);
+    i2cInitPort(I2C);
 }
 
 uint16_t i2cGetErrorCounter(I2C_TypeDef* I2Cx)

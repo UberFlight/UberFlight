@@ -618,7 +618,7 @@ static void cliDump(char *cmdline)
     printf("map %s\r\n", buf);
 
     // print settings
-    for (i = 0; i < VALUE_COUNT; i++) {
+    for (i = 0; i < (int)VALUE_COUNT; i++) {
         setval = &valueTable[i];
         printf("set %s = ", valueTable[i].name);
         cliPrintVar(setval, 0);
@@ -1004,8 +1004,8 @@ static void cliStatus(char *cmdline)
     }
     if (sensors(SENSOR_ACC)) {
         printf("ACCHW: %s", accNames[accHardware]);
-        if (accHardware == ACC_MPU6050)
-            printf(".%c", core.mpu6050_scale ? 'o' : 'n');
+//        if (accHardware == ACC_MPU6050)
+//            printf(".%c", core.mpu6050_scale ? 'o' : 'n');
     }
     cliPrintStr("\r\n");
 
@@ -1061,7 +1061,7 @@ void cliProcess()
                 cliPrompt();
                 i = 0;    /* Redraw prompt */
             }
-            for (; i < bufferIndex; i++)
+            for (; i < (int)bufferIndex; i++)
                 cliPrint(cliBuffer[i]);
         } else if (!bufferIndex && c == 4) {
             cliExit(cliBuffer);

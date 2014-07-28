@@ -123,7 +123,7 @@ void systemInit(bool overclock)
     SysTick_Config(SystemCoreClock / 1000);
 
     // Configure the rest of the stuff
-    i2cInit(I2C2);
+    i2cInit(BOARD_I2C_PORT);
     spiInit();
 
     // sleep for 100ms

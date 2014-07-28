@@ -127,7 +127,7 @@ void mpu6000AccInit(sensor_align_e align)
     acc_1G = 512 * 8;
 }
 
-bool mpu6000DetectSpi(sensor_t *acc, sensor_t *gyro, uint16_t lpf, uint8_t *scale)
+bool mpu6000DetectSpi(sensor_t *sensorAcc, sensor_t *sensorGyro, uint16_t lpf )
 {
     uint8_t mpuLowPassFilter = BITS_DLPF_CFG_42HZ;
     int16_t data[3];
@@ -232,18 +232,19 @@ bool mpu6000DetectSpi(sensor_t *acc, sensor_t *gyro, uint16_t lpf, uint8_t *scal
         spiResetErrorCounter();
         return false;
     }
-    acc->init = mpu6000AccInit;
-    acc->read = mpu6000AccRead;
-    gyro->init = mpu6000GyroInit;
-    gyro->read = mpu6000GyroRead;
-    gyro->scale = (4.0f / 16.4f) * (M_PI / 180.0f) * 0.000001f;
+    sensorAcc->init = mpu6000AccInit;
+    sensorAcc->read = mpu6000AccRead;
+    sensorGyro->init = mpu6000GyroInit;
+    sensorGyro->read = mpu6000GyroRead;
+    sensorGyro->scale = (4.0f / 16.4f) * (M_PI / 180.0f) * 0.000001f;
+
     delay(100);
     return true;
 }
 
-bool mpu6000GyroRead(int16_t *gyroData)
+bool mpu6000GyroRead(int16_t *data)
 {
-    int16_t data[3];
+    int16_t dataBuffer[3];
     uint8_t buf[6];
     setSPIdivisor(2);  // 18 MHz SPI clock
 
@@ -252,17 +253,17 @@ bool mpu6000GyroRead(int16_t *gyroData)
     spiTransfer(buf, NULL, 6);
     DISABLE_MPU6000;
 
-    data[X] = (int16_t)((buf[0] << 8) | buf[1]) / 4;
-    data[Y] = (int16_t)((buf[2] << 8) | buf[3]) / 4;
-    data[Z] = (int16_t)((buf[4] << 8) | buf[5]) / 4;
+    dataBuffer[X] = (int16_t)((buf[0] << 8) | buf[1]) / 4;
+    dataBuffer[Y] = (int16_t)((buf[2] << 8) | buf[3]) / 4;
+    dataBuffer[Z] = (int16_t)((buf[4] << 8) | buf[5]) / 4;
 
-    alignSensors(data, gyroData, gyroAlign);
+    alignSensors(dataBuffer, data, gyroAlign);
     return true;
 }
 
-bool mpu6000AccRead(int16_t *gyroData)
+bool mpu6000AccRead(int16_t *data)
 {
-    int16_t data[3];
+    int16_t dataBuffer[3];
     uint8_t buf[6];
     setSPIdivisor(2);  // 18 MHz SPI clock
 
@@ -271,10 +272,10 @@ bool mpu6000AccRead(int16_t *gyroData)
     spiTransfer(buf, NULL, 6);
     DISABLE_MPU6000;
 
-    data[X] = (int16_t)((buf[0] << 8) | buf[1]);
-    data[Y] = (int16_t)((buf[2] << 8) | buf[3]);
-    data[Z] = (int16_t)((buf[4] << 8) | buf[5]);
+    dataBuffer[X] = (int16_t)((buf[0] << 8) | buf[1]);
+    dataBuffer[Y] = (int16_t)((buf[2] << 8) | buf[3]);
+    dataBuffer[Z] = (int16_t)((buf[4] << 8) | buf[5]);
 
-    alignSensors(data, gyroData, accAlign);
+    alignSensors(dataBuffer, data, accAlign);
     return true;
 }

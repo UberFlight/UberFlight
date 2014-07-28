@@ -40,8 +40,6 @@
 
 #define MAX_SPEKTRUM_CHANNELS       7
 
-uint32_t spekChannelData[MAX_SPEKTRUM_CHANNELS];
-
 static uint8_t spek_chan_shift;
 static uint8_t spek_chan_mask;
 static bool rcFrameComplete = false;

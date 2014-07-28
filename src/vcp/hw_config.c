@@ -239,16 +239,16 @@ void USB_Interrupts_Config(void)
 #endif
 }
 
-/*******************************************************************************
- * Function Name  : USB_Cable_Config
- * Description    : Software Connection/Disconnection of USB Cable
- * Input          : None.
- * Return         : Status
- *******************************************************************************/
-void USB_Cable_Config(FunctionalState NewState)
-{
-
-}
+///*******************************************************************************
+// * Function Name  : USB_Cable_Config
+// * Description    : Software Connection/Disconnection of USB Cable
+// * Input          : None.
+// * Return         : Status
+// *******************************************************************************/
+//void USB_Cable_Config(FunctionalState NewState)
+//{
+//
+//}
 
 /*******************************************************************************
  * Function Name  : Get_SerialNum.
@@ -304,7 +304,7 @@ static void IntToUnicode(uint32_t value, uint8_t *pbuf, uint8_t len)
  * Output         : None.
  * Return         : None.
  *******************************************************************************/
-uint32_t CDC_Send_DATA(uint8_t *ptrBuffer, uint8_t sendLength)
+uint32_t CDC_Send_DATA(uint8_t *ptrBuffer, uint8_t length)
 {
     /* Last transmission hasn't finished, abort */
     if (packetSent) {
@@ -312,19 +312,19 @@ uint32_t CDC_Send_DATA(uint8_t *ptrBuffer, uint8_t sendLength)
     }
 
     // We can only put 64 bytes in the buffer
-    if (sendLength > 64 / 2) {
-        sendLength = 64 / 2;
+    if (length > 64 / 2) {
+        length = 64 / 2;
     }
 
     // Try to load some bytes if we can
-    if (sendLength) {
-        UserToPMABufferCopy(ptrBuffer, ENDP1_TXADDR, sendLength);
-        SetEPTxCount(ENDP1, sendLength);
-        packetSent += sendLength;
+    if (length) {
+        UserToPMABufferCopy(ptrBuffer, ENDP1_TXADDR, length);
+        SetEPTxCount(ENDP1, length);
+        packetSent += length;
         SetEPTxValid(ENDP1);
     }
 
-    return sendLength;
+    return length;
 }
 
 /*******************************************************************************

@@ -54,6 +54,6 @@ extern uint8_t newMagData;
 
 bool readHMC5983(int16_t *magADC);
 
-bool hmc5983DetectSpi(sensor_t *mag,sensor_align_e align);
+bool hmc5983DetectSpi(sensor_t *mag);
 
 void hmc5983Init(sensor_align_e align);

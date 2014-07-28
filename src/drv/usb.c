@@ -45,7 +45,6 @@ static uartPort_t uartPortUSB;
 void usbSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
 // TODO restart usb with baudrate
-    ;
 }
 
 void usbSetMode(serialPort_t *instance, portMode_t mode)

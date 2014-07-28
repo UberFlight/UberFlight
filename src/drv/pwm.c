@@ -202,12 +202,12 @@ void pwmICConfig(TIM_TypeDef *tim, uint8_t channel, uint16_t polarity)
 
 static void pwmGPIOConfig(GPIO_TypeDef *gpio, uint32_t pin, GPIO_Mode mode)
 {
-    gpio_config_t cfg;
+    gpio_config_t gpioConfig;
 
-    cfg.pin = pin;
-    cfg.mode = mode;
-    cfg.speed = Speed_2MHz;
-    gpioInit(gpio, &cfg);
+    gpioConfig.pin = pin;
+    gpioConfig.mode = mode;
+    gpioConfig.speed = Speed_2MHz;
+    gpioInit(gpio, &gpioConfig);
 }
 
 static pwmPortData_t *pwmOutConfig(uint8_t port, uint8_t mhz, uint16_t period, uint16_t value)
@@ -272,6 +272,7 @@ static void failsafeCheck(uint8_t channel, uint16_t pulse)
 
 static void ppmCallback(uint8_t port, captureCompare_t capture)
 {
+    (void)port; // check for multiple ppm rx
     uint16_t diff;
     static uint16_t now;
     static uint16_t last = 0;

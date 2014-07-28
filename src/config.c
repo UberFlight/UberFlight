@@ -98,74 +98,66 @@ void loadAndActivateConfig(void)
 #if defined(NAZEPRO) || defined(QUANTOM)
 #define FLASH_FLAG_PROTECFLAG FLASH_FLAG_WRPERR
 
-
 void writeEEPROM(uint8_t b, uint8_t updateProfile)
 {
-//   FLASH_Status status;
-//    uint32_t i;
-//    uint8_t chk = 0;
-//    const uint8_t *p;
-//    int tries = 0;
+   FLASH_Status status;
+    uint32_t i;
+    uint8_t chk = 0;
+    const uint8_t *p;
+    int tries = 0;
+
+    // prepare checksum/version constants
+    mcfg.version = EEPROM_CONF_VERSION;
+    mcfg.size = sizeof(master_t);
+    mcfg.magic_be = 0xBE;
+    mcfg.magic_ef = 0xEF;
+    mcfg.chk = 0;
+
+    // when updateProfile = true, we copy contents of cfg to global configuration. when false, only profile number is updated, and then that profile is loaded on readEEPROM()
+    if (updateProfile) {
+        // copy current in-memory profile to stored configuration
+        memcpy(&mcfg.profile[mcfg.current_profile], &cfg, sizeof(config_t));
+    }
+
+    // recalculate checksum before writing
+    for (p = (const uint8_t *)&mcfg; p < ((const uint8_t *)&mcfg + sizeof(master_t)); p++)
+        chk ^= *p;
+    mcfg.chk = chk;
+
+    // write it
+retry:
+    FLASH_Unlock();
+    FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_PROTECFLAG);
+
+
+
+//    i = -1;
 //
-//    // prepare checksum/version constants
-//    mcfg.version = EEPROM_CONF_VERSION;
-//    mcfg.size = sizeof(master_t);
-//    mcfg.magic_be = 0xBE;
-//    mcfg.magic_ef = 0xEF;
-//    mcfg.chk = 0;
-//
-//    // when updateProfile = true, we copy contents of cfg to global configuration. when false, only profile number is updated, and then that profile is loaded on readEEPROM()
-//    if (updateProfile) {
-//        // copy current in-memory profile to stored configuration
-//        memcpy(&mcfg.profile[mcfg.current_profile], &cfg, sizeof(config_t));
-//    }
-//
-//    // recalculate checksum before writing
-//    for (p = (const uint8_t *)&mcfg; p < ((const uint8_t *)&mcfg + sizeof(master_t)); p++)
-//        chk ^= *p;
-//    mcfg.chk = chk;
-//
-//    // write it
-//retry:
-//    FLASH_Unlock();
-//
-//
-//#if defined (STM32F4XX)
-//        FLASH_ClearFlag(FLASH_FLAG_EOP    | FLASH_FLAG_OPERR  | FLASH_FLAG_WRPERR |
-//            FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
-//
-//#else
-//    FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_PROTECFLAG);
-//#endif
-////    i = -1;
-////
-////    while (status == FLASH_COMPLETE && i++ < eepromConfigNUMWORD)
-////       status = FLASH_ProgramWord((uint32_t)&dst[i], ((uint32_t*)src)[i]);
-//
-//    if (FLASH_EraseSector(FLASH_Sector_1, VoltageRange_3) == FLASH_COMPLETE) {
-//
-//        for (i = 0; i < sizeof(master_t); i += 4) {
-//            status = FLASH_ProgramWord(FLASH_WRITE_ADDR + i, *(uint32_t *)((char *)&mcfg + i));
-//            if (status != FLASH_COMPLETE) {
-//                FLASH_Lock();
-//                tries++;
-//                if (tries < 3)
-//                    goto retry;
-//                else
-//                    break;
-//            }
-//        }
-//
-//    }
-//    FLASH_Lock();
-//
-//    // Flash write failed - just die now
-//    if (tries == 3 || !validEEPROM()) {
-//        failureMode(10);
-//    }
-//
-//    // re-read written data
-//    loadAndActivateConfig();
+//    while (status == FLASH_COMPLETE && i++ < eepromConfigNUMWORD)
+//       status = FLASH_ProgramWord((uint32_t)&dst[i], ((uint32_t*)src)[i]);
+
+    if (FLASH_ErasePage(FLASH_WRITE_ADDR) == FLASH_COMPLETE) {
+        for (i = 0; i < sizeof(master_t); i += 4) {
+            status = FLASH_ProgramWord(FLASH_WRITE_ADDR + i, *(uint32_t *)((char *)&mcfg + i));
+            if (status != FLASH_COMPLETE) {
+                FLASH_Lock();
+                tries++;
+                if (tries < 3)
+                    goto retry;
+                else
+                    break;
+            }
+        }
+    }
+    FLASH_Lock();
+
+    // Flash write failed - just die now
+    if (tries == 3 || !validEEPROM()) {
+        failureMode(10);
+    }
+
+    // re-read written data
+    loadAndActivateConfig();
     if (b)
         blinkLED(15, 20, 1);
 }

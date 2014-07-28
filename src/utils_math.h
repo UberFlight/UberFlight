@@ -12,8 +12,8 @@ int applyDeadband(int value, int deadband);
 int constrain(int amt, int low, int high);
 int constrainf(int amt, int low, int high);
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#define max(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) ((int)(a) < (int)(b) ? (int)(a) : (int)(b))
+#define max(a, b) ((int)(a) > (int)(b) ? (int)(a) : (int)(b))
 #define abs(x) ((x) > 0 ? (x) : -(x))
 
 #ifndef sq

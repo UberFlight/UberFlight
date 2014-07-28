@@ -325,6 +325,7 @@ typedef struct baro_t {
 #define UART_HEADER_RC USART1
 #define UART_HEADER_FLEX USART3
 
+#define BOARD_I2C_PORT I2C2
 #endif
 
 
@@ -410,4 +411,4 @@ typedef struct baro_t {
 #include "sensors/spi_eeprom.h"
 
 
-#define BOARD_I2C_PORT I2C2
+

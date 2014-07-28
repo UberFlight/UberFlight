@@ -131,12 +131,12 @@ bool sensorsAutodetect(void)
             sensorsClear(SENSOR_MAG);
 
     } else {
-        if (!hmc5983DetectSpi(&mag, mcfg.mag_align))
+        if (!hmc5983DetectSpi(&mag))
             sensorsClear(SENSOR_MAG);
 
     }
 
-    if (!mpu6000DetectSpi(&acc, &gyro, mcfg.gyro_lpf, &core.mpu6050_scale)) {
+    if (!mpu6000DetectSpi(&acc, &gyro, mcfg.gyro_lpf)) {
         sensorsClear(SENSOR_ACC);
         sensorsClear(SENSOR_GYRO);
     }

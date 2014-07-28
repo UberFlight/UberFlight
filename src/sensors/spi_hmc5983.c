@@ -65,10 +65,10 @@ static float magGain[3] = { 1.0f, 1.0f, 1.0f };
 
 static sensor_align_e magAlign = CW0_DEG;
 
-bool readHMC5983(int16_t *magADC)
+bool readHMC5983(int16_t *data)
 {
     uint8_t buf[6];
-    int16_t mag[3];
+    int16_t dataBuffer[3];
     setSPIdivisor(8);  // 4.5 MHz SPI clock
 
     ENABLE_HMC5983;
@@ -76,13 +76,13 @@ bool readHMC5983(int16_t *magADC)
     spiTransfer(buf, NULL, 6);
     DISABLE_HMC5983;
 
-    mag[X] = (int16_t)(buf[0] << 8 | buf[1]) * magGain[X];
-    mag[Z] = (int16_t)(buf[2] << 8 | buf[3]) * magGain[Z];
-    mag[Y] = (int16_t)(buf[4] << 8 | buf[5]) * magGain[Y];
+    dataBuffer[X] = (int16_t)(buf[0] << 8 | buf[1]) * magGain[X];
+    dataBuffer[Z] = (int16_t)(buf[2] << 8 | buf[3]) * magGain[Z];
+    dataBuffer[Y] = (int16_t)(buf[4] << 8 | buf[5]) * magGain[Y];
 
-    alignSensors(mag, magADC, magAlign);
+    alignSensors(dataBuffer, data, magAlign);
     // check for valid data
-    if (mag[X] == -4096 || mag[Y] == -4096 || mag[Z] == -4096) {
+    if (dataBuffer[X] == -4096 || dataBuffer[Y] == -4096 || dataBuffer[Z] == -4096) {
         return false;
     } else {
         return true;
@@ -98,9 +98,9 @@ void hmc5983Init(sensor_align_e align)
 // Initialize Magnetometer
 ///////////////////////////////////////////////////////////////////////////////
 
-bool hmc5983DetectSpi(sensor_t *mag, sensor_align_e align)
+bool hmc5983DetectSpi(sensor_t *mag)
 {
-    int16_t magADC[3];
+    int16_t data[3];
     int32_t xyz_total[3] = { 0, 0, 0 }; // 32 bit totals so they won't overflow.
 
     spiResetErrorCounter();
@@ -123,7 +123,7 @@ bool hmc5983DetectSpi(sensor_t *mag, sensor_align_e align)
 
     delay(20);
 
-    readHMC5983(magADC);
+    readHMC5983(data);
 
     for (i = 0; i < 10; i++) {
         ENABLE_HMC5983;
@@ -139,11 +139,11 @@ bool hmc5983DetectSpi(sensor_t *mag, sensor_align_e align)
             hmc5983Status = spiTransferByte(0x00);
             DISABLE_HMC5983;
         }
-        if (!readHMC5983(magADC)) // check for valid data
+        if (!readHMC5983(data)) // check for valid data
             break;          // breaks out of the for loop if sensor saturated.
-        xyz_total[X] += magADC[X];
-        xyz_total[Y] += magADC[Y];
-        xyz_total[Z] += magADC[Z];
+        xyz_total[X] += data[X];
+        xyz_total[Y] += data[Y];
+        xyz_total[Z] += data[Z];
     }
     if (i == 10) // loop completed
         calibrationSteps--;
@@ -154,7 +154,7 @@ bool hmc5983DetectSpi(sensor_t *mag, sensor_align_e align)
     DISABLE_HMC5983;
 
     delay(20);
-    readHMC5983(magADC);
+    readHMC5983(data);
 
     for (i = 0; i < 10; i++) {
         ENABLE_HMC5983;
@@ -170,11 +170,11 @@ bool hmc5983DetectSpi(sensor_t *mag, sensor_align_e align)
             hmc5983Status = spiTransferByte(0x00);
             DISABLE_HMC5983;
         }
-        if (!readHMC5983(magADC))
+        if (!readHMC5983(data))
             break;
-        xyz_total[X] += magADC[X];
-        xyz_total[Y] += magADC[Y];
-        xyz_total[Z] += magADC[Z];
+        xyz_total[X] += data[X];
+        xyz_total[Y] += data[Y];
+        xyz_total[Z] += data[Z];
     }
     if (i == 10) // loop completed
         calibrationSteps--;
@@ -198,9 +198,9 @@ bool hmc5983DetectSpi(sensor_t *mag, sensor_align_e align)
 
     delay(20);
 
-    readHMC5983(magADC);
+    readHMC5983(data);
 
-    if ((((int8_t)magADC[1]) == -1 && ((int8_t)magADC[0]) == -1) || spiGetErrorCounter() != 0) {
+    if ((((int8_t)data[1]) == -1 && ((int8_t)data[0]) == -1) || spiGetErrorCounter() != 0) {
         spiResetErrorCounter();
         return false;
     }

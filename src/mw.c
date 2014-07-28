@@ -850,7 +850,6 @@ void loop(void)
         if (sensors(SENSOR_BARO)) {
             if (f.BARO_MODE) {
                 static uint8_t isAltHoldChanged = 0;
-                static int16_t AltHoldCorr = 0;
                 if (!f.FIXED_WING) {
                     // multirotor alt hold
                     if (cfg.alt_hold_fast_change) {
