@@ -42,11 +42,15 @@
 ///////////////////////////////////////////////////////////////////////////////
 // GPIO Defines
 ////////////////////////////////////////////////////////////////////////////////
+#if defined(QUANTOM)
+#define digitalHi(p, i)     { p->BSRRH = i; }
+#define digitalLo(p, i)     { p->BSRRL = i; }
+#else
 #define digitalHi(p, i)     { p->BSRR = i; }
 #define digitalLo(p, i)     { p->BRR = i; }
+#endif
 #define digitalToggle(p, i) { p->ODR ^= i; }
 #define digitalIn(p, i)     (p->IDR & i)
-
 ///////////////////////////////////////
 
 #define BEEP_OFF      digitalHi(BEEP_GPIO, BEEP_PIN)
@@ -78,7 +82,7 @@ typedef enum {
 
 #endif
 
-#if defined(NAZEPRO)
+#if defined(NAZEPRO) || defined(QUANTOM)
 
 typedef enum
 {
@@ -98,7 +102,8 @@ typedef enum
 typedef enum {
     Speed_10MHz = 1,
     Speed_2MHz,
-    Speed_50MHz
+    Speed_50MHz,
+    Speed_25MHz
 } GPIO_Speed;
 
 typedef struct {

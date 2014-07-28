@@ -32,7 +32,18 @@
 /* Includes ------------------------------------------------------------------*/
 //#include "platform_config.h"
 #include "usb_type.h"
+
+
+#if defined(NAZEPRO)
 #include "stm32f30x.h"
+
+#endif
+
+#if defined(QUANTOM)
+#include "stm32f4xx.h"
+
+#endif
+
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/

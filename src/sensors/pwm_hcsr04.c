@@ -33,10 +33,15 @@ void ECHO_EXTI_IRQHandler(void)
             // The speed of sound is 340 m/s or approx. 29 microseconds per centimeter.
             // The ping travels out and back, so to find the distance of the
             // object we take half of the distance traveled.
-            //
+
             // 340 m/s = 0.034 cm/microsecond = 29.41176471 *2 = 58.82352941 rounded to 59
-            int32_t pulse_duration = timing_stop - timing_start;
-            *distance_ptr = pulse_duration / 59;
+            int32_t distance = (timing_stop - timing_start) / 59;
+
+            // this sonar range is up to 4meter , but 3meter is accurate enough (+tilted and roll)
+            if (distance > 300)
+            distance = -1;
+
+            *distance_ptr = distance;
         }
     }
 

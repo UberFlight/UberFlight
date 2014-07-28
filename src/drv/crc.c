@@ -12,7 +12,8 @@
  */
 
 #include <inttypes.h>
-#include "stm32f30x.h"
+#include "lib.h"
+
 
 #include "crc.h"
 

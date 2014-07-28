@@ -22,7 +22,7 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 
 #define MAX_TIMERS 4 // TIM1..TIM4
 
-static const TIM_TypeDef *timers[MAX_TIMERS] = {
+static const TIM_TypeDef const *timers[MAX_TIMERS] = {
     TIM1, TIM2, TIM3, TIM4
 };
 #endif
@@ -49,11 +49,37 @@ const timerHardware_t timerHardware[] = {
 };
 #define MAX_TIMERS 7
 
-static const TIM_TypeDef *timers[MAX_TIMERS] = {
-TIM1, TIM2, TIM3, TIM4, TIM15 , TIM16 , TIM17 };
+static const TIM_TypeDef const *timers[MAX_TIMERS] = {
+TIM1, TIM2, TIM3, TIM4, TIM15, TIM16 , TIM17 };
 
 #endif
 
+#if defined(QUANTOM)
+const timerHardware_t timerHardware[] = {
+    {   TIM1,  GPIOA, Pin_10, TIM_Channel_3, TIM1_CC_IRQn, 1,  Mode_AF_PP_PD},
+    {   TIM8,  GPIOC, Pin_6,  TIM_Channel_1, TIM8_CC_IRQn, 1,  Mode_AF_PP_PD},
+    {   TIM8,  GPIOC, Pin_10, TIM_Channel_2, TIM8_CC_IRQn, 1,  Mode_AF_PP_PD},
+    {   TIM8,  GPIOC, Pin_4,  TIM_Channel_3, TIM8_CC_IRQn,    0,  Mode_AF_PP_PD},
+    {   TIM2,  GPIOA, Pin_15, TIM_Channel_1, TIM2_IRQn, 0, Mode_AF_PP_PD},
+    {   TIM2,  GPIOB, Pin_3,  TIM_Channel_2, TIM2_IRQn, 0, Mode_AF_PP_PD},
+    {   TIM5,  GPIOA, Pin_0,  TIM_Channel_1, TIM5_IRQn, 0, Mode_AF_PP_PD},
+    {   TIM5,  GPIOA, Pin_1,  TIM_Channel_2, TIM5_IRQn, 0, Mode_AF_PP_PD},
+
+    {   TIM3,  GPIOB, Pin_4,  TIM_Channel_1, TIM3_IRQn, 0, Mode_AF_PP},
+    {   TIM3,  GPIOB, Pin_5,  TIM_Channel_2, TIM3_IRQn, 0, Mode_AF_PP},
+    {   TIM3,  GPIOB, Pin_0,  TIM_Channel_3, TIM3_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM3,  GPIOB, Pin_1,  TIM_Channel_4, TIM3_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM12, GPIOB, Pin_14, TIM_Channel_1, TIM8_BRK_TIM12_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM10, GPIOB, Pin_8,  TIM_Channel_1, TIM1_UP_TIM10_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM11, GPIOB, Pin_9,  TIM_Channel_1, TIM1_TRG_COM_TIM11_IRQn, 0, Mode_AF_PP_PD}               // flex port
+
+};
+#define MAX_TIMERS 8
+
+static const TIM_TypeDef const *timers[MAX_TIMERS] = {
+TIM1, TIM2, TIM3, TIM5, TIM8, TIM10 , TIM11, TIM12 };
+
+#endif
 
 #define CC_CHANNELS_PER_TIMER 4 // TIM_Channel_1..4
 static const uint16_t channels[CC_CHANNELS_PER_TIMER] = {
@@ -238,6 +264,7 @@ void TIM8_CC_IRQHandler(void)
     timCCxHandler(TIM8);
 }
 
+#if !defined(QUANTOM)
 void TIM1_BRK_TIM15_IRQHandler(void)
 {
     timCCxHandler(TIM15);
@@ -252,3 +279,5 @@ void TIM1_TRG_COM_TIM17_IRQHandler(void)
 {
     timCCxHandler(TIM17);
 }
+
+#endif

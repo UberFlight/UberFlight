@@ -220,6 +220,72 @@ typedef struct baro_t {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+
+#if defined(QUANTOM)
+
+#include "stm32f4xx.h"
+#include "stm32f4xx_conf.h"
+
+#include "usb_lib.h"
+#include "vcp/usb_desc.h"
+#include "vcp/usb_pwr.h"
+
+#define BEEP_PIN    GPIO_Pin_4
+#define BEEP_GPIO   GPIOA
+
+#define LED0_PIN    GPIO_Pin_13
+#define LED0_GPIO   GPIOC
+
+#define LED1_PIN    GPIO_Pin_14
+#define LED1_GPIO   GPIOC
+
+
+
+
+#define UART1_TX_PIN        GPIO_Pin_6
+#define UART1_RX_PIN        GPIO_Pin_7
+#define UART1_TX_GPIO       GPIOB
+#define UART1_RX_GPIO       GPIOB
+#define UART1_TX_PINSOURCE  GPIO_PinSource6
+#define UART1_RX_PINSOURCE  GPIO_PinSource7
+
+
+#define UART2_TX_PIN        GPIO_Pin_2
+#define UART2_RX_PIN        GPIO_Pin_3
+#define UART2_TX_GPIO       GPIOA
+#define UART2_RX_GPIO       GPIOA
+#define UART2_TX_PINSOURCE  GPIO_PinSource2
+#define UART2_RX_PINSOURCE  GPIO_PinSource3
+
+
+
+#define UART3_TX_PIN        GPIO_Pin_10
+#define UART3_RX_PIN        GPIO_Pin_11
+#define UART3_TX_GPIO       GPIOB
+#define UART3_RX_GPIO       GPIOB
+#define UART3_TX_PINSOURCE  GPIO_PinSource10
+#define UART3_RX_PINSOURCE  GPIO_PinSource11
+
+#define UART4_TX_PIN        GPIO_Pin_10
+#define UART4_RX_PIN        GPIO_Pin_11
+#define UART4_TX_GPIO       GPIOC
+#define UART4_RX_GPIO       GPIOC
+#define UART4_TX_PINSOURCE  GPIO_PinSource10
+#define UART4_RX_PINSOURCE  GPIO_PinSource11
+
+#define UART5_TX_PIN        GPIO_Pin_12
+#define UART5_RX_PIN        GPIO_Pin_2
+#define UART5_TX_GPIO       GPIOC
+#define UART5_RX_GPIO       GPIOD
+#define UART5_TX_PINSOURCE  GPIO_PinSource12
+#define UART5_RX_PINSOURCE  GPIO_PinSource2
+
+#define UART_HEADER_RXTX USART2
+#define UART_HEADER_RC USART1
+#define UART_HEADER_FLEX USART3
+
+#endif
+
 #if defined(NAZEPRO)
 
 #include "stm32f30x.h"
@@ -312,7 +378,13 @@ typedef struct baro_t {
 #include "drv/spi.h"
 #include "drv/system.h"
 #include "drv/timer.h"
+
+#if defined(QUANTOM)
+#include "drv/uart_new.h"
+#else
 #include "drv/uart.h"
+#endif
+
 #include "drv/usb.h"
 
 

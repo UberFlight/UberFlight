@@ -26,7 +26,15 @@ typedef volatile uint32_t vuint32_t;
  */
 static inline void crc32Reset(void)
   {
+
+
+#if defined(NAZEPRO)
   RCC_AHBPeriphClockCmd(RCC_AHBPeriph_CRC, ENABLE);
+#endif
+
+#if defined(QUANTOM)
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
+#endif
 
   CRC->CR = CRC_CR_RESET;
   __NOP(); // 4 Clocks to finish reset.

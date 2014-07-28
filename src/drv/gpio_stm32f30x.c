@@ -136,6 +136,7 @@ void gpioInit(GPIO_TypeDef *gpio, gpio_config_t *config)
                 case Speed_2MHz:
                     speed = GPIO_Speed_2MHz;
                     break;
+                default:
                 case Speed_50MHz:
                     speed = GPIO_Speed_50MHz;
                     break;

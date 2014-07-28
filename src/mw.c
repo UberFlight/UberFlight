@@ -326,7 +326,7 @@ static void pidMultiWii(void)
             PTermGYRO = rcCommand[axis];
 
             errorGyroI[axis] = constrain(errorGyroI[axis] + error, -16000, +16000); // WindUp
-            if ((abs(gyroData[axis]) > 640) || (abs(rcCommand[axis]) > YAW_DEADBAND))
+            if ((abs(gyroData[axis]) > 640) || ((axis == YAW) && (abs(rcCommand[axis]) > 100)))
                 errorGyroI[axis] = 0;
             ITermGYRO = (errorGyroI[axis] / 125 * cfg.I8[axis]) >> 6;
         }
@@ -402,7 +402,7 @@ static void pidRewrite(void)
 
         // limit maximum integrator value to prevent WindUp - accumulating extreme values when system is saturated.
         // I coefficient (I8) moved before integration to make limiting independent from PID settings
-        errorGyroI[axis] = constrain(errorGyroI[axis], (int32_t) - GYRO_I_MAX << 13, (int32_t) + GYRO_I_MAX << 13);
+        errorGyroI[axis] = constrain(errorGyroI[axis], (int32_t)- GYRO_I_MAX << 13, (int32_t)+ GYRO_I_MAX << 13);
         ITerm = errorGyroI[axis] >> 13;
 
         //-----calculate D-term
@@ -537,12 +537,15 @@ void loop(void)
             errorGyroI[YAW] = 0;
             errorAngleI[ROLL] = 0;
             errorAngleI[PITCH] = 0;
-            if (cfg.activate[BOXARM] > 0) { // Arming/Disarming via ARM BOX
+            if (cfg.activate[BOXARM] > 0) { // Arming via ARM BOX
                 if (rcOptions[BOXARM] && f.OK_TO_ARM)
                     mwArm();
-                else if (f.ARMED)
-                    mwDisarm();
             }
+        }
+
+        if (cfg.activate[BOXARM] > 0) { // Disarming via ARM BOX
+            if (!rcOptions[BOXARM] && f.ARMED)
+                mwDisarm();
         }
 
         if (rcDelayCommand == 20) {
@@ -687,7 +690,7 @@ void loop(void)
                     f.BARO_MODE = 1;
                     AltHold = EstAlt;
                     initialThrottleHold = rcCommand[THROTTLE];
-                    errorAltitudeI = 0;
+                    errorVelocityI = 0;
                     BaroPID = 0;
                 }
             } else {
@@ -853,7 +856,7 @@ void loop(void)
                     if (cfg.alt_hold_fast_change) {
                         // rapid alt changes
                         if (abs(rcCommand[THROTTLE] - initialThrottleHold) > cfg.alt_hold_throttle_neutral) {
-                            errorAltitudeI = 0;
+                            errorVelocityI = 0;
                             isAltHoldChanged = 1;
                             rcCommand[THROTTLE] += (rcCommand[THROTTLE] > initialThrottleHold) ? -cfg.alt_hold_throttle_neutral : cfg.alt_hold_throttle_neutral;
                         } else {
@@ -861,22 +864,21 @@ void loop(void)
                                 AltHold = EstAlt;
                                 isAltHoldChanged = 0;
                             }
-                            rcCommand[THROTTLE] = constrain(initialThrottleHold + BaroPID, mcfg.minthrottle + 100, mcfg.maxthrottle);
+                            rcCommand[THROTTLE] = constrain(initialThrottleHold + BaroPID, mcfg.minthrottle, mcfg.maxthrottle);
                         }
                     } else {
                         // slow alt changes for apfags
                         if (abs(rcCommand[THROTTLE] - initialThrottleHold) > cfg.alt_hold_throttle_neutral) {
-                            // Slowly increase/decrease AltHold proportional to stick movement ( +100 throttle gives ~ +50 cm in 1 second with cycle time about 3-4ms)
-                            AltHoldCorr += rcCommand[THROTTLE] - initialThrottleHold;
-                            AltHold += AltHoldCorr / 2000;
-                            AltHoldCorr %= 2000;
+                            // set velocity proportional to stick movement +100 throttle gives ~ +50 cm/s
+                            setVelocity = (rcCommand[THROTTLE] - initialThrottleHold) / 2;
+                            velocityControl = 1;
                             isAltHoldChanged = 1;
                         } else if (isAltHoldChanged) {
                             AltHold = EstAlt;
-                            AltHoldCorr = 0;
+                            velocityControl = 0;
                             isAltHoldChanged = 0;
                         }
-                        rcCommand[THROTTLE] = constrain(initialThrottleHold + BaroPID, mcfg.minthrottle + 100, mcfg.maxthrottle);
+                        rcCommand[THROTTLE] = constrain(initialThrottleHold + BaroPID, mcfg.minthrottle, mcfg.maxthrottle);
                     }
                 } else {
                     // handle fixedwing-related althold. UNTESTED! and probably wrong

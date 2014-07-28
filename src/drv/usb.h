@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include "uart.h"
+//#include "uart.h"
 
 serialPort_t *usbInit(void);
 

@@ -11,7 +11,7 @@ extern uint16_t pwmReadRawRC(uint8_t chan);
 int main(void)
 {
     checkFirstTime(false);          // check the need to load default config
-    loadAndActivateConfig();        // load master and profile configuration
+//    loadAndActivateConfig();        // load master and profile configuration
 
     systemInit(mcfg.emf_avoidance); // start board
 

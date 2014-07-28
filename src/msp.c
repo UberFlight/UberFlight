@@ -68,29 +68,9 @@ struct box_t {
     const uint8_t boxIndex;         // this is from boxnames enum
     const char *boxName;            // GUI-readable box name
     const uint8_t permanentId;      //
-} boxes[] = {
-        { BOXARM, "ARM;", 0 },
-        { BOXANGLE, "ANGLE;", 1 },
-        { BOXHORIZON, "HORIZON;", 2 },
-        { BOXBARO, "BARO;", 3 },
-        { BOXVARIO, "VARIO;", 4 },
-        { BOXMAG, "MAG;", 5 },
-        { BOXHEADFREE, "HEADFREE;", 6 },
-        { BOXHEADADJ, "HEADADJ;", 7 },
-        { BOXCAMSTAB, "CAMSTAB;", 8 },
-        { BOXCAMTRIG, "CAMTRIG;", 9 },
-        { BOXGPSHOME, "GPS HOME;", 10 },
-        { BOXGPSHOLD, "GPS HOLD;", 11 },
-        { BOXPASSTHRU, "PASSTHRU;", 12 },
-        { BOXBEEPERON, "BEEPER;", 13 },
-        { BOXLEDMAX, "LEDMAX;", 14 },
-        { BOXLEDLOW, "LEDLOW;", 15 },
-        { BOXLLIGHTS, "LLIGHTS;", 16 },
-        { BOXCALIB, "CALIB;", 17 },
-        { BOXGOV, "GOVERNOR;", 18 },
-        { BOXOSD, "OSD SW;", 19 },
-        { BOXTELEMETRY, "TELEMETRY;", 20 },
-        { CHECKBOXITEMS, NULL, 0xFF } };
+} boxes[] = { { BOXARM, "ARM;", 0 }, { BOXANGLE, "ANGLE;", 1 }, { BOXHORIZON, "HORIZON;", 2 }, { BOXBARO, "BARO;", 3 }, { BOXVARIO, "VARIO;", 4 }, { BOXMAG, "MAG;", 5 }, { BOXHEADFREE, "HEADFREE;", 6 }, { BOXHEADADJ, "HEADADJ;", 7 }, { BOXCAMSTAB, "CAMSTAB;", 8 }, { BOXCAMTRIG,
+        "CAMTRIG;", 9 }, { BOXGPSHOME, "GPS HOME;", 10 }, { BOXGPSHOLD, "GPS HOLD;", 11 }, { BOXPASSTHRU, "PASSTHRU;", 12 }, { BOXBEEPERON, "BEEPER;", 13 }, { BOXLEDMAX, "LEDMAX;", 14 }, { BOXLEDLOW, "LEDLOW;", 15 }, { BOXLLIGHTS, "LLIGHTS;", 16 }, { BOXCALIB, "CALIB;", 17 }, {
+        BOXGOV, "GOVERNOR;", 18 }, { BOXOSD, "OSD SW;", 19 }, { BOXTELEMETRY, "TELEMETRY;", 20 }, { CHECKBOXITEMS, NULL, 0xFF } };
 
 // this is calculated at startup based on enabled features.
 static uint8_t availableBoxes[CHECKBOXITEMS];
@@ -273,7 +253,7 @@ void mspInit(void)
 
 static void evaluateCommand(void)
 {
-    uint32_t i, tmp, junk;
+    uint32_t i, j, tmp, junk;
     uint8_t wp_no;
     int32_t lat = 0, lon = 0, alt = 0;
 
@@ -499,8 +479,12 @@ static void evaluateCommand(void)
             break;
         case MSP_BOXIDS:
             headSerialReply(numberBoxItems);
-            for (i = 0; i < numberBoxItems; i++)
-                serialize8(availableBoxes[i]);
+            for (i = 0; i < numberBoxItems; i++) {
+                for (j = 0; j < CHECKBOXITEMS; j++) {
+                    if (boxes[j].permanentId == availableBoxes[i])
+                        serialize8(boxes[j].permanentId);
+                }
+            }
             break;
         case MSP_MISC:
             headSerialReply(2 * 6 + 4 + 2 + 4);

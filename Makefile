@@ -34,7 +34,7 @@ SERIAL_DEVICE	?= /dev/ttyUSB0
 # Things that need to be maintained as the source changes
 #
 
-VALID_TARGETS	 = NAZEPRO NAZE
+VALID_TARGETS	 = NAZEPRO NAZE QUANTOM
 
 
 # Common working directories
@@ -131,6 +131,49 @@ endif
 #end STM32F10x
 
 
+
+# STM32F304xx 
+ifeq ($(TARGET),$(filter $(TARGET), QUANTOM))
+
+DIR_STDPERIPH = $(ROOT)/lib/STM32F4xx_StdPeriph_Driver
+DIR_USBFS     = $(ROOT)/lib/STM32_USB-FS-Device_Driver
+
+CMSIS_SRC	  = $(notdir $(wildcard $(CMSIS_DIR)/Device/ST/STM32F4xx/Source/Templates/*.c))
+
+VPATH		:= $(VPATH):$(CMSIS_DIR)/Device/ST/STM32F4xx/Source/Templates/
+
+INCLUDE_DIRS := $(INCLUDE_DIRS) \
+		   $(DIR_STDPERIPH)/inc \
+		   $(DIR_USBFS)/inc \
+		   $(CMSIS_DIR)/Include \
+		   $(CMSIS_DIR)/Device/ST/STM32F4xx/Include \
+		   $(ROOT)/src/vcp
+
+
+LD_SCRIPT	 = $(ROOT)/stm32_flash_f4xx.ld
+
+ARCH_FLAGS	 = -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 
+
+DEVICE_FLAGS = -DSTM32F4XX -DARM_MATH_CM4 
+DEVICE_MCUNAME = stm32f4xx
+
+# Search path and source files for the ST stdperiph library
+VPATH		:= $(VPATH):$(DIR_STDPERIPH)/src:$(DIR_USBFS)/src
+
+USBPERIPH_SRC = $(notdir $(wildcard $(DIR_USBFS)/src/*.c))
+STDPERIPH_SRC = $(notdir $(wildcard $(DIR_STDPERIPH)/src/*.c))
+
+EXCLUDES = stm32f30x_crc.c\
+stm32f30x_can.c
+
+STDPERIPH_SRC := $(filter-out ${EXCLUDES}, $(STDPERIPH_SRC))
+
+DEVICE_STDPERIPH_SRC = $(USBPERIPH_SRC) \
+$(STDPERIPH_SRC)
+
+endif
+#end STM32F304xx
+
 MW_SRC	 = \
  		align.c \
 		buzzer.c \
@@ -164,8 +207,10 @@ COMMON_SRC =  \
 		drv/board_$(DEVICE_MCUNAME).c \
 		drv/uart_$(DEVICE_MCUNAME).c \
 
-NAZEPRO_SRC = $(MW_SRC) \
+
+COMMONPRO_SRC = $(MW_SRC) \
 		$(COMMON_SRC) \
+		$(UARTNEW_SRC) \
 		drv/usb.c \
 		drv/crc.c \
 		drv/i2c_soft.c \
@@ -173,7 +218,6 @@ NAZEPRO_SRC = $(MW_SRC) \
 		drv/serial.c \
 		drv/softserial.c \
 		drv/timer.c \
-		drv/uart.c \
 		sensors/i2c_adxl345.c \
 		sensors/i2c_bma280.c \
 		sensors/i2c_bmp085.c \
@@ -194,6 +238,19 @@ NAZEPRO_SRC = $(MW_SRC) \
 		vcp/usb_istr.c \
 		vcp/usb_prop.c \
 		vcp/usb_pwr.c
+
+
+NAZEPRO_SRC = \
+	$(COMMON_SRC) \
+	$(COMMONPRO_SRC) \
+	drv/uart.c \
+
+QUANTOM_SRC = \
+	$(COMMON_SRC) \
+	$(COMMONPRO_SRC) \
+	drv/uart_new.c \
+
+
 
 NAZE_SRC = $(MW_SRC) \
 		$(COMMON_SRC) \
@@ -229,12 +286,26 @@ NAZE_SRC = $(MW_SRC) \
 CC		= arm-none-eabi-gcc
 OBJCOPY	= arm-none-eabi-objcopy
 
+ifeq ($(DEBUG),GDB)
+OPTIMIZE = -O0
+LTO_FLAGS = $(OPTIMIZE)
+else
+OPTIMIZE = -Os
+LTO_FLAGS = -flto -fuse-linker-plugin $(OPTIMIZE)
+endif
+
+DEBUG_FLAGS = -ggdb3
+
 #
 # Tool options.
 BASE_CFLAGS	 = $(ARCH_FLAGS) \
+		   $(LTO_FLAGS) \
 		   $(addprefix -D,$(OPTIONS)) \
 		   $(addprefix -I,$(INCLUDE_DIRS)) \
-		   -Wall \
+		   $(addprefix -isystem,$(CMSIS_DIR)/Include) \
+		   $(DEBUG_FLAGS) \
+		   -std=gnu99 \
+		   -Wall -pedantic -Wextra -Wshadow -Wunsafe-loop-optimizations -Wno-ignored-qualifiers \
 		   -ffunction-sections \
 		   -fdata-sections \
 		   $(DEVICE_FLAGS) \
@@ -248,6 +319,9 @@ ASFLAGS		 = $(ARCH_FLAGS) \
 
 # XXX Map/crossref output?
 LDFLAGS		 = -lm \
+		   -nostartfiles \
+		   --specs=nano.specs \
+		   -lc -lnosys \
 		   $(ARCH_FLAGS) \
 		   -static \
 		   -Wl,-gc-sections,-Map,$(TARGET_MAP) \
@@ -263,15 +337,6 @@ LDFLAGS		 = -lm \
 #
 ifeq ($(filter $(TARGET),$(VALID_TARGETS)),)
 $(error Target '$(TARGET)' is not valid, must be one of $(VALID_TARGETS))
-endif
-
-ifeq ($(DEBUG),GDB)
-CFLAGS = $(BASE_CFLAGS) \
-	-ggdb \
-	-O0
-else
-CFLAGS = $(BASE_CFLAGS) \
-	-Os
 endif
 
 
@@ -293,7 +358,7 @@ $(TARGET_ELF):  $(TARGET_OBJS)
 $(OBJECT_DIR)/$(TARGET)/%.o: %.c
 	@mkdir -p $(dir $@)
 	@echo %% $(notdir $<)
-	@$(CC) -c -o $@ $(CFLAGS) $<
+	@$(CC) -c -o $@ $(BASE_CFLAGS) $<
 
 # Assemble
 $(OBJECT_DIR)/$(TARGET)/%.o: %.s

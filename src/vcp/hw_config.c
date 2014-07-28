@@ -73,26 +73,31 @@ void Set_System(void)
      To reconfigure the default setting of SystemInit() function, refer to
      system_stm32f10x.c file
      */
-#if defined(STM32L1XX_MD) || defined(STM32L1XX_HD)|| defined(STM32L1XX_MD_PLUS) || defined(STM32F37X) || defined(STM32F30X)
+#if defined(STM32L1XX_MD) || defined(STM32L1XX_HD)|| defined(STM32L1XX_MD_PLUS) || defined(STM32F37X) || defined(STM32F30X)|| defined(STM32F4XX)
     /* Enable the SYSCFG module clock */
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 #endif /* STM32L1XX_XD */ 
 
     /*Pull down PA12 to create USB Disconnect Pulse*/     // HJI
-#if defined(STM32F30X)                                    // HJI
+#if defined(STM32F30X)  || defined(STM32F4XX)
+
+#if(defined(STM32F4XX))
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);   // HJI
+#else
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);   // HJI
+#endif
 
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;          // HJI
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;     // HJI
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;        // HJI
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;        // HJI
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;     // HJI
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;// HJI
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;// HJI
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;// HJI
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;// HJI
 #else
-            RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); // HJI
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); // HJI
 
-            GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;// HJI
-            GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;// HJI
-            GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;// HJI
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12; // HJI
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz; // HJI
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD; // HJI
 #endif
 
     GPIO_Init(GPIOA, &GPIO_InitStructure);                // HJI
@@ -103,10 +108,16 @@ void Set_System(void)
 
     GPIO_SetBits(GPIOA, GPIO_Pin_12);                     // HJI
 
-#if defined(STM32F37X) || defined(STM32F30X)
+#if defined(STM32F37X) || defined(STM32F30X) || defined(STM32F4XX)
 
     /*Set PA11,12 as IN - USB_DM,DP*/
+
+#if(defined(STM32F4XX))
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+#else
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
+#endif
+
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11 | GPIO_Pin_12;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
@@ -114,9 +125,15 @@ void Set_System(void)
     GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
+#if defined(STM32F4XX)
+    /*SET PA11,12 for USB: USB_DM,DP*/
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_OTG_FS);
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource12, GPIO_AF_OTG_FS);
+#else
     /*SET PA11,12 for USB: USB_DM,DP*/
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_14);
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource12, GPIO_AF_14);
+#endif
 
 #endif /* STM32F37X  && STM32F30X)*/
 
@@ -136,11 +153,16 @@ void Set_System(void)
  *******************************************************************************/
 void Set_USBClock(void)
 {
+
     /* Select USBCLK source */
     RCC_USBCLKConfig(RCC_USBCLKSource_PLLCLK_1Div5);
-
-    /* Enable the USB clock */
+    
+    /* Enable the USB clock */    
+#if(defined(STM32F4XX))
+    RCC_APB2PeriphClockCmd(RCC_AHB2Periph_OTG_FS, ENABLE);
+#else
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_USB, ENABLE);
+#endif
 }
 
 /*******************************************************************************
@@ -189,6 +211,19 @@ void USB_Interrupts_Config(void)
     /* 2 bit for pre-emption priority, 2 bits for subpriority */
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 
+#if(defined(STM32F4XX))
+    /* Enable the USB interrupt */
+    NVIC_InitStructure.NVIC_IRQChannel = OTG_HS_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+
+    /* Enable the USB Wake-up interrupt */
+    NVIC_InitStructure.NVIC_IRQChannel = OTG_HS_WKUP_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+    NVIC_Init(&NVIC_InitStructure);
+#else
     /* Enable the USB interrupt */
     NVIC_InitStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
@@ -200,6 +235,8 @@ void USB_Interrupts_Config(void)
     NVIC_InitStructure.NVIC_IRQChannel = USBWakeUp_IRQn;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
     NVIC_Init(&NVIC_InitStructure);
+
+#endif
 }
 
 /*******************************************************************************
