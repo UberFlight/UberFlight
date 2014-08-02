@@ -1,4 +1,9 @@
-#Baseflight - STM32 F3 DEV version for the NAZE32Pro#
+#Baseflight -  STM32F3/F4 DEV version#
+
+
+##Board##
+* NazePro STM32f3
+* Quantom STM32f4
 
 
 ##Polish me##
