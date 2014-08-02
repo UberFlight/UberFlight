@@ -155,8 +155,6 @@ void systemInit(bool overclock)
     gpioStart();
 
     spiInit();
-//    if feature(FEATURE_I2C)
-//        i2cInit(I2C2);
 
     for (i = 0; i < 10; i++) {
         LED0_TOGGLE

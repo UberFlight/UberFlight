@@ -208,6 +208,7 @@ void calculatePressureAltitude(int32_t *pressure, int32_t *temperature)
 
 bool ms5611DetectSpi(baro_t *baro)
 {
+
     spiResetErrorCounter();
     setSPIdivisor(2);  // 18 MHz SPI clock
 

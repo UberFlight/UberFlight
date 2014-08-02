@@ -39,14 +39,22 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 
+#if defined(QUANTOM)
+#define MPU6000_CS_GPIO       GPIOC
+#define MPU6000_CS_PIN        GPIO_Pin_4
+#define MPU6000_INT_GPIO      GPIOC
+#define MPU6000_INT_PIN       GPIO_Pin_0
+
+#else
 #define MPU6000_CS_GPIO       GPIOC
 #define MPU6000_CS_PIN        GPIO_Pin_15
+#define MPU6000_INT_GPIO      GPIOB
+#define MPU6000_INT_PIN       GPIO_Pin_1
+#endif
 
 #define DISABLE_MPU6000       GPIO_SetBits(MPU6000_CS_GPIO,   MPU6000_CS_PIN)
 #define ENABLE_MPU6000        GPIO_ResetBits(MPU6000_CS_GPIO, MPU6000_CS_PIN)
 
-#define MPU6000_INT_GPIO      GPIOB
-#define MPU6000_INT_PIN       GPIO_Pin_1
 
 ///////////////////////////////////////
 

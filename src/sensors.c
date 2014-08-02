@@ -131,8 +131,8 @@ bool sensorsAutodetect(void)
             sensorsClear(SENSOR_MAG);
 
     } else {
-        if (!hmc5983DetectSpi(&mag))
-            sensorsClear(SENSOR_MAG);
+//        if (!hmc5983DetectSpi(&mag))
+        sensorsClear(SENSOR_MAG);
 
     }
 
@@ -141,8 +141,14 @@ bool sensorsAutodetect(void)
         sensorsClear(SENSOR_GYRO);
     }
 
+#if defined(NAZEPRO)
     if (!ms5611DetectSpi(&baro))
         sensorsClear(SENSOR_BARO);
+#else
+//    if (!ms5611Detect(&baro))
+        sensorsClear(SENSOR_BARO);
+#endif
+
 
     // Now time to init things, acc first
     if (sensors(SENSOR_ACC))
@@ -151,12 +157,10 @@ bool sensorsAutodetect(void)
     if (sensors(SENSOR_GYRO))
         gyro.init(mcfg.gyro_align);
 
-    if (sensors(SENSOR_MAG)){
+    if (sensors(SENSOR_MAG)) {
         mag.init(mcfg.mag_align);
-        magInit= 1;
+        magInit = 1;
     }
-
-
 
     return true;
 }
@@ -172,10 +176,10 @@ uint16_t batteryAdcToVoltage(uint16_t src)
 int32_t currentSensorToCentiamps(uint16_t src)
 {
     int32_t millivolts;
-    
+
     millivolts = ((uint32_t)src * ADCVREF * 100) / 4095;
     millivolts -= mcfg.currentoffset;
-    
+
     return (millivolts * 1000) / (int32_t)mcfg.currentscale; // current in 0.01A steps 
 }
 
@@ -414,7 +418,6 @@ void Gyro_getADC(void)
 }
 
 #ifdef MAG
-
 
 bool Mag_update(void)
 {

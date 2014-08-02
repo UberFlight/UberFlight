@@ -1,6 +1,10 @@
 #include "board.h"
 
+#if defined(QUANTOM)
+#define MS5611_I2C                 I2C3
+#else
 #define MS5611_I2C                 I2C2
+#endif
 // MS5611, Standard address 0x77
 #define MS5611_ADDR                 0x77
 // Autodetect: turn off BMP085 while initializing ms5611 and check PROM crc to confirm device
@@ -37,21 +41,22 @@ static uint8_t ms5611_osr = CMD_ADC_4096;
 
 bool ms5611Detect(baro_t *baro)
 {
+
     bool ack = false;
     uint8_t sig;
     int i;
-
-    if (HSE_VALUE != 12000000) {
-        // PC13 (BMP085's XCLR reset input, which we use to disable it). Only needed when running at 8MHz
-        gpio_config_t gpio;
-        gpio.pin = Pin_13;
-        gpio.speed = Speed_2MHz;
-        gpio.mode = Mode_Out_PP;
-        gpioInit(GPIOC, &gpio);
-//        BMP085_OFF;
-    }
-
-    delay(10); // No idea how long the chip takes to power-up, but let's make it 10ms
+//
+//    if (HSE_VALUE != 12000000) {
+//        // PC13 (BMP085's XCLR reset input, which we use to disable it). Only needed when running at 8MHz
+//        gpio_config_t gpio;
+//        gpio.pin = Pin_13;
+//        gpio.speed = Speed_2MHz;
+//        gpio.mode = Mode_Out_PP;
+//        gpioInit(GPIOC, &gpio);
+////        BMP085_OFF;
+//    }
+//
+//    delay(10); // No idea how long the chip takes to power-up, but let's make it 10ms
 
     // BMP085 is disabled. If we have a MS5611, it will reply. if no reply, means either
     // we have BMP085 or no baro at all.

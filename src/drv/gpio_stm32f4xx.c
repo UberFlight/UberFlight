@@ -81,7 +81,7 @@ void gpioStart(void)
             },
 #endif
 #ifdef BUZZER
-            { .gpio = BEEP_GPIO, .cfg = { BEEP_PIN, Mode_Out_OD, Speed_50MHz } },
+            { .gpio = BEEP_GPIO, .cfg = { BEEP_PIN, Mode_Out_PP, Speed_2MHz } },
 #endif
             };
 
@@ -94,19 +94,31 @@ void gpioStart(void)
     {
 
         //TODO F4
-//        // 6x3 header
-//        GPIO_PinAFConfig(GPIOA, GPIO_PinSource0, GPIO_AF_1);
-//        GPIO_PinAFConfig(GPIOA, GPIO_PinSource1, GPIO_AF_1);
-//        GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_9);
-//        GPIO_PinAFConfig(GPIOA, GPIO_PinSource3, GPIO_AF_9);
-//        GPIO_PinAFConfig(GPIOA, GPIO_PinSource6, GPIO_AF_1);
-//        GPIO_PinAFConfig(GPIOA, GPIO_PinSource7, GPIO_AF_1);
-//
+        // 8x3 rc
+        GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_TIM1);
+        GPIO_PinAFConfig(GPIOC, GPIO_PinSource6, GPIO_AF_TIM8);
+        GPIO_PinAFConfig(GPIOC, GPIO_PinSource7, GPIO_AF_TIM8);
+        GPIO_PinAFConfig(GPIOC, GPIO_PinSource8, GPIO_AF_TIM8);
+        GPIO_PinAFConfig(GPIOA, GPIO_PinSource15, GPIO_AF_TIM2);
+        GPIO_PinAFConfig(GPIOB, GPIO_PinSource3, GPIO_AF_TIM2);
+        GPIO_PinAFConfig(GPIOA, GPIO_PinSource0, GPIO_AF_TIM5);
+        GPIO_PinAFConfig(GPIOA, GPIO_PinSource1, GPIO_AF_TIM5);
+
+        // 8x3 out
+        GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_TIM3);
+        GPIO_PinAFConfig(GPIOB, GPIO_PinSource5, GPIO_AF_TIM3);
+        GPIO_PinAFConfig(GPIOB, GPIO_PinSource0, GPIO_AF_TIM3);
+        GPIO_PinAFConfig(GPIOB, GPIO_PinSource1, GPIO_AF_TIM3);
+        GPIO_PinAFConfig(GPIOB, GPIO_PinSource14, GPIO_AF_TIM12);
+        GPIO_PinAFConfig(GPIOB, GPIO_PinSource14, GPIO_AF_TIM10);
+        GPIO_PinAFConfig(GPIOB, GPIO_PinSource8, GPIO_AF_TIM10);
+        GPIO_PinAFConfig(GPIOB, GPIO_PinSource9, GPIO_AF_TIM11);
+
 //        // 2x5 header rc pin
 //        GPIO_PinAFConfig(GPIOA, GPIO_PinSource8, GPIO_AF_6);
 ////        if (feature(FEATURE_I2C)) {
-////            GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_4);
-////            GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_4);
+            GPIO_PinAFConfig(GPIOC, GPIO_PinSource9, GPIO_AF_I2C3);
+            GPIO_PinAFConfig(GPIOA, GPIO_PinSource8, GPIO_AF_I2C3);
 ////        } else
 //        {
 //            GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_6);

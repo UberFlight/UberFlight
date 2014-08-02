@@ -47,7 +47,6 @@ static volatile uint32_t usTicks = 0;
 // Hopefully we won't care.
 static volatile uint32_t sysTickUptime = 0;
 
-
 ///////////////////////////////////////////////////////////////////////////////
 // Cycle Counter
 ///////////////////////////////////////////////////////////////////////////////
@@ -109,7 +108,40 @@ void systemInit(bool overclock)
     int i;
 
     // start fpu
-    SCB->CPACR = (0x3 << (10*2)) | (0x3 << (11*2));
+    SCB->CPACR = (0x3 << (10 * 2)) | (0x3 << (11 * 2));
+    /* Reset the RCC clock configuration to the default reset state ------------*/
+    /* Set HSION bit */
+    RCC->CR |= (uint32_t)0x00000001;
+
+    /* Reset CFGR register */
+    RCC->CFGR = 0x00000000;
+
+    /* Reset HSEON, CSSON and PLLON bits */
+    RCC->CR &= (uint32_t)0xFEF6FFFF;
+
+    /* Reset PLLCFGR register */
+    RCC->PLLCFGR = 0x24003010;
+
+    /* Reset HSEBYP bit */
+    RCC->CR &= (uint32_t)0xFFFBFFFF;
+
+    /* Disable all interrupts */
+    RCC->CIR = 0x00000000;
+
+#ifdef DATA_IN_ExtSRAM
+    SystemInit_ExtMemCtl();
+#endif /* DATA_IN_ExtSRAM */
+
+    /* Configure the System clock source, PLL Multiplier and Divider factors,
+     AHB/APBx prescalers and Flash settings ----------------------------------*/
+    SetSysClock();
+#define VECT_TAB_OFFSET  0x00 /*!< Vector Table base offset field.
+     /* Configure the Vector Table location add offset address ------------------*/
+#ifdef VECT_TAB_SRAM
+    SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
+#else
+    SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
+#endif
 
     // Init cycle counter
     cycleCounterInit();
@@ -119,34 +151,44 @@ void systemInit(bool overclock)
 
 //    RCC_ADCCLKConfig(RCC_ADC12PLLCLK_Div256);  // 72 MHz divided by 256 = 281.25 kHz
 
-    // Turn on peripherial clocks
+// Turn on peripherial clocks
 //    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_ADC12, ENABLE);
 
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);  // USART1, USART2
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);  // ADC2
+//    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);  // USART1, USART2
+//    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);  // ADC2
 
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
+//    RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
 
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);  // PWM Out  + PWM RX
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);  // PWM Out
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);  // PWM Out  + PWM RX
-//    RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C2, ENABLE);  // i2c
-//    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM7, ENABLE);  //
+
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C3, ENABLE);  // i2c
+
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);  //
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);  //
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM10, ENABLE);  //
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM11, ENABLE);  //
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12, ENABLE);  //
+
+    //    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM7, ENABLE);  //
 //
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);  // PPM + PWM RX
+ // PPM + PWM RX
 //    RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);  //
 //    RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM15, ENABLE);  // PWM Out
 //    RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM16, ENABLE);  // PWM Out
 //    RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM17, ENABLE);  // PWM Out
 
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);  // Telemetry
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);  // GPS
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);  // Spektrum RX
+//    RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);  // Telemetry
+//    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);  // GPS
+//    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);  // Spektrum RX
 
     RCC_ClearFlag();
 
@@ -209,15 +251,19 @@ void delay(uint32_t ms)
 
 void systemReset(bool toBootloader)
 {
-    if (toBootloader) {
+
+
+    //TODO reboot to DFU ok , but make it configurable ..
+
+    if (toBootloader)
+    {
         // 1FFFF000 -> 20000200 -> SP
         // 1FFFF004 -> 1FFFF021 -> PC
-        *((uint32_t *)0x20009FFC) = 0xDEADBEEF; // 40KB SRAM STM32F30X
+        *((uint32_t *)0x2001FFFC) = 0xDEADBEEF; // 128KB SRAM STM32F407
     }
 
     // Generate system reset
-    SCB->AIRCR = AIRCR_VECTKEY_MASK | (uint32_t)0x04;
-    while (1);
+    SCB->AIRCR = AIRCR_VECTKEY_MASK | (uint32_t) 0x04;
 }
 
 void systemUnPause(void)

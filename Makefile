@@ -15,7 +15,7 @@
 #
 
 # The target to build
-TARGET		?=  NAZEPRO
+TARGET		?=  QUANTOM
 
 # The name of the build
 BRANCH_NAME     = dev
@@ -34,7 +34,7 @@ SERIAL_DEVICE	?= /dev/ttyUSB0
 # Things that need to be maintained as the source changes
 #
 
-VALID_TARGETS	 = NAZEPRO NAZE QUANTOM
+VALID_TARGETS	 = QUANTOM NAZEPRO NAZE
 
 
 # Common working directories
@@ -54,6 +54,7 @@ VPATH		:= $(SRC_DIR):$(SRC_DIR)/startup
 # STM32F303xC 
 ifeq ($(TARGET),$(filter $(TARGET), NAZEPRO))
 
+DEVICE_MCUNAME = stm32f30x
 DIR_STDPERIPH = $(ROOT)/lib/STM32F30x_StdPeriph_Driver
 DIR_USBFS     = $(ROOT)/lib/STM32_USB-FS-Device_Driver
 
@@ -66,7 +67,7 @@ INCLUDE_DIRS := $(INCLUDE_DIRS) \
 		   $(DIR_USBFS)/inc \
 		   $(CMSIS_DIR)/Include \
 		   $(CMSIS_DIR)/Device/ST/STM32F30x/Include \
-		   $(ROOT)/src/vcp
+		   $(ROOT)/src/vcp_$(DEVICE_MCUNAME)
 
 
 LD_SCRIPT	 = $(ROOT)/stm32_flash_f303.ld
@@ -74,7 +75,7 @@ LD_SCRIPT	 = $(ROOT)/stm32_flash_f303.ld
 ARCH_FLAGS	 = -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 
 
 DEVICE_FLAGS = -DSTM32F303xC -DARM_MATH_CM4 
-DEVICE_MCUNAME = stm32f30x
+
 
 # Search path and source files for the ST stdperiph library
 VPATH		:= $(VPATH):$(DIR_STDPERIPH)/src:$(DIR_USBFS)/src
@@ -100,6 +101,7 @@ endif
 # STM32F10x 
 ifeq ($(TARGET),$(filter $(TARGET), NAZE))
 
+DEVICE_MCUNAME = stm32f10x
 DIR_STDPERIPH = $(ROOT)/lib/STM32F10x_StdPeriph_Driver
 
 CMSIS_SRC	  = $(notdir $(wildcard $(CMSIS_DIR)/Device/ST/STM32F10x/Source/Templates/*.c))
@@ -117,7 +119,6 @@ LD_SCRIPT	 = $(ROOT)/stm32_flash_f103.ld
 ARCH_FLAGS	 = -mthumb -mcpu=cortex-m3
 
 DEVICE_FLAGS = -DSTM32F10X_MD 
-DEVICE_MCUNAME = stm32f10x
 
 # Search path and source files for the ST stdperiph library
 VPATH		:= $(VPATH):$(DIR_STDPERIPH)/src
@@ -135,8 +136,11 @@ endif
 # STM32F304xx 
 ifeq ($(TARGET),$(filter $(TARGET), QUANTOM))
 
-DIR_STDPERIPH = $(ROOT)/lib/STM32F4xx_StdPeriph_Driver
-DIR_USBFS     = $(ROOT)/lib/STM32_USB-FS-Device_Driver
+DEVICE_MCUNAME = stm32f4xx
+DIR_STDPERIPH  = $(ROOT)/lib/STM32F4xx_StdPeriph_Driver
+DIR_USBFS      = $(ROOT)/lib/STM32_USB_Device_Library/Core
+DIR_USBCDC     = $(ROOT)/lib/STM32_USB_Device_Library/Class/cdc
+DIR_USBOTG     = $(ROOT)/lib/STM32_USB_OTG_Driver
 
 CMSIS_SRC	  = $(notdir $(wildcard $(CMSIS_DIR)/Device/ST/STM32F4xx/Source/Templates/*.c))
 
@@ -145,31 +149,46 @@ VPATH		:= $(VPATH):$(CMSIS_DIR)/Device/ST/STM32F4xx/Source/Templates/
 INCLUDE_DIRS := $(INCLUDE_DIRS) \
 		   $(DIR_STDPERIPH)/inc \
 		   $(DIR_USBFS)/inc \
+		   $(DIR_USBCDC)/inc \
+		   $(DIR_USBOTG)/inc \
 		   $(CMSIS_DIR)/Include \
 		   $(CMSIS_DIR)/Device/ST/STM32F4xx/Include \
-		   $(ROOT)/src/vcp
+		   $(ROOT)/src/vcp_$(DEVICE_MCUNAME)
 
 
 LD_SCRIPT	 = $(ROOT)/stm32_flash_f4xx.ld
 
-ARCH_FLAGS	 = -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 
+ARCH_FLAGS	 = -mthumb -mthumb-interwork -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion
 
-DEVICE_FLAGS = -DSTM32F4XX -DARM_MATH_CM4 
-DEVICE_MCUNAME = stm32f4xx
+DEVICE_FLAGS = -DSTM32F4XX -DARM_MATH_CM4  -DUSE_USB_OTG_FS  
+
 
 # Search path and source files for the ST stdperiph library
-VPATH		:= $(VPATH):$(DIR_STDPERIPH)/src:$(DIR_USBFS)/src
+VPATH		:= $(VPATH):$(DIR_STDPERIPH)/src:$(DIR_USBFS)/src:$(DIR_USBOTG)/src:$(DIR_USBCDC)/src
 
 USBPERIPH_SRC = $(notdir $(wildcard $(DIR_USBFS)/src/*.c))
 STDPERIPH_SRC = $(notdir $(wildcard $(DIR_STDPERIPH)/src/*.c))
+USBOTGPERIPH_SRC = $(notdir $(wildcard $(DIR_USBOTG)/src/*.c))
+USBCDCPERIPH_SRC = $(notdir $(wildcard $(DIR_USBCDC)/src/*.c))
 
-EXCLUDES = stm32f30x_crc.c\
-stm32f30x_can.c
+
+EXCLUDES = stm32f4xx_crc.c\
+stm32f4xx_can.c 
 
 STDPERIPH_SRC := $(filter-out ${EXCLUDES}, $(STDPERIPH_SRC))
 
+EXCLUDES = usb_otg.c\
+usb_bsp_template.c \
+usb_hcd.c \
+usb_hcd_int.c \
+
+USBOTGPERIPH_SRC := $(filter-out ${EXCLUDES}, $(USBOTGPERIPH_SRC))
+
+
 DEVICE_STDPERIPH_SRC = $(USBPERIPH_SRC) \
-$(STDPERIPH_SRC)
+$(STDPERIPH_SRC) \
+$(USBOTGPERIPH_SRC) \
+$(USBCDCPERIPH_SRC)
 
 endif
 #end STM32F304xx
@@ -211,7 +230,7 @@ COMMON_SRC =  \
 COMMONPRO_SRC = $(MW_SRC) \
 		$(COMMON_SRC) \
 		$(UARTNEW_SRC) \
-		drv/usb.c \
+		drv/usb_$(DEVICE_MCUNAME).c \
 		drv/crc.c \
 		drv/i2c_soft.c \
 		drv/pwm.c \
@@ -230,24 +249,29 @@ COMMONPRO_SRC = $(MW_SRC) \
 		sensors/i2c_ms5611.c \
 		sensors/spi_hmc5983.c \
 		sensors/spi_mpu6000.c \
-		sensors/spi_ms5611.c \
-		vcp/hw_config.c \
-		vcp/stm32_it.c \
-		vcp/usb_desc.c \
-		vcp/usb_endp.c \
-		vcp/usb_istr.c \
-		vcp/usb_prop.c \
-		vcp/usb_pwr.c
+		sensors/spi_ms5611.c 
 
 
 NAZEPRO_SRC = \
 	$(COMMON_SRC) \
 	$(COMMONPRO_SRC) \
+	vcp_$(DEVICE_MCUNAME)/hw_config.c \
+	vcp_$(DEVICE_MCUNAME)/stm32_it.c \
+	vcp_$(DEVICE_MCUNAME)/usb_desc.c \
+	vcp_$(DEVICE_MCUNAME)/usb_endp.c \
+	vcp_$(DEVICE_MCUNAME)/usb_istr.c \
+	vcp_$(DEVICE_MCUNAME)/usb_prop.c \
+	vcp_$(DEVICE_MCUNAME)/usb_pwr.c \
 	drv/uart.c \
 
 QUANTOM_SRC = \
 	$(COMMON_SRC) \
 	$(COMMONPRO_SRC) \
+	vcp_$(DEVICE_MCUNAME)/stm32f4xx_it.c \
+	vcp_$(DEVICE_MCUNAME)/usb_bsp.c \
+	vcp_$(DEVICE_MCUNAME)/usbd_cdc_vcp.c \
+	vcp_$(DEVICE_MCUNAME)/usbd_desc.c \
+	vcp_$(DEVICE_MCUNAME)/usbd_usr.c \
 	drv/uart_new.c \
 
 
@@ -303,6 +327,8 @@ BASE_CFLAGS	 = $(ARCH_FLAGS) \
 		   $(addprefix -D,$(OPTIONS)) \
 		   $(addprefix -I,$(INCLUDE_DIRS)) \
 		   $(addprefix -isystem,$(CMSIS_DIR)/Include) \
+		   $(addprefix -isystem,$(DIR_USBFS)/inc) \
+		   $(addprefix -isystem,$(DIR_USBOTG)/inc) \
 		   $(DEBUG_FLAGS) \
 		   -std=gnu99 \
 		   -Wall -pedantic -Wextra -Wshadow -Wunsafe-loop-optimizations -Wno-ignored-qualifiers \

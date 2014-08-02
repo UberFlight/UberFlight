@@ -1,27 +1,25 @@
 #include "board.h"
 #include "timer.h"
 
-
 #if defined(NAZE)
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
-    { TIM2, GPIOA, Pin_0, TIM_Channel_1, TIM2_IRQn, 0, Mode_IPD},          // PWM1
-    { TIM2, GPIOA, Pin_1, TIM_Channel_2, TIM2_IRQn, 0, Mode_IPD},          // PWM2
-    { TIM2, GPIOA, Pin_2, TIM_Channel_3, TIM2_IRQn, 0, Mode_IPD},          // PWM3
-    { TIM2, GPIOA, Pin_3, TIM_Channel_4, TIM2_IRQn, 0, Mode_IPD},          // PWM4
-    { TIM3, GPIOA, Pin_6, TIM_Channel_1, TIM3_IRQn, 0, Mode_IPD},          // PWM5
-    { TIM3, GPIOA, Pin_7, TIM_Channel_2, TIM3_IRQn, 0, Mode_IPD},          // PWM6
-    { TIM3, GPIOB, Pin_0, TIM_Channel_3, TIM3_IRQn, 0, Mode_IPD},          // PWM7
-    { TIM3, GPIOB, Pin_1, TIM_Channel_4, TIM3_IRQn, 0, Mode_IPD},          // PWM8
-    { TIM1, GPIOA, Pin_8, TIM_Channel_1, TIM1_CC_IRQn, 1, Mode_IPD},       // PWM9
-    { TIM1, GPIOA, Pin_11, TIM_Channel_4, TIM1_CC_IRQn, 1, Mode_IPD},      // PWM10
-    { TIM4, GPIOB, Pin_6, TIM_Channel_1, TIM4_IRQn, 0, Mode_IPD},          // PWM11
-    { TIM4, GPIOB, Pin_7, TIM_Channel_2, TIM4_IRQn, 0, Mode_IPD},          // PWM12
-    { TIM4, GPIOB, Pin_8, TIM_Channel_3, TIM4_IRQn, 0, Mode_IPD},          // PWM13
-    { TIM4, GPIOB, Pin_9, TIM_Channel_4, TIM4_IRQn, 0, Mode_IPD}           // PWM14
+    {   TIM2, GPIOA, Pin_0, TIM_Channel_1, TIM2_IRQn, 0, Mode_IPD},          // PWM1
+    {   TIM2, GPIOA, Pin_1, TIM_Channel_2, TIM2_IRQn, 0, Mode_IPD},          // PWM2
+    {   TIM2, GPIOA, Pin_2, TIM_Channel_3, TIM2_IRQn, 0, Mode_IPD},          // PWM3
+    {   TIM2, GPIOA, Pin_3, TIM_Channel_4, TIM2_IRQn, 0, Mode_IPD},          // PWM4
+    {   TIM3, GPIOA, Pin_6, TIM_Channel_1, TIM3_IRQn, 0, Mode_IPD},          // PWM5
+    {   TIM3, GPIOA, Pin_7, TIM_Channel_2, TIM3_IRQn, 0, Mode_IPD},          // PWM6
+    {   TIM3, GPIOB, Pin_0, TIM_Channel_3, TIM3_IRQn, 0, Mode_IPD},          // PWM7
+    {   TIM3, GPIOB, Pin_1, TIM_Channel_4, TIM3_IRQn, 0, Mode_IPD},          // PWM8
+    {   TIM1, GPIOA, Pin_8, TIM_Channel_1, TIM1_CC_IRQn, 1, Mode_IPD},       // PWM9
+    {   TIM1, GPIOA, Pin_11, TIM_Channel_4, TIM1_CC_IRQn, 1, Mode_IPD},      // PWM10
+    {   TIM4, GPIOB, Pin_6, TIM_Channel_1, TIM4_IRQn, 0, Mode_IPD},          // PWM11
+    {   TIM4, GPIOB, Pin_7, TIM_Channel_2, TIM4_IRQn, 0, Mode_IPD},          // PWM12
+    {   TIM4, GPIOB, Pin_8, TIM_Channel_3, TIM4_IRQn, 0, Mode_IPD},          // PWM13
+    {   TIM4, GPIOB, Pin_9, TIM_Channel_4, TIM4_IRQn, 0, Mode_IPD}           // PWM14
 };
 
 #define MAX_TIMERS 4 // TIM1..TIM4
-
 static const TIM_TypeDef const *timers[MAX_TIMERS] = {
     TIM1, TIM2, TIM3, TIM4
 };
@@ -29,62 +27,61 @@ static const TIM_TypeDef const *timers[MAX_TIMERS] = {
 
 #if defined(NAZEPRO)
 const timerHardware_t timerHardware[] = {
-    {   TIM1,  GPIOA, Pin_8,  TIM_Channel_1, TIM1_CC_IRQn, 1,  Mode_AF_PP_PD},
-    {   TIM1,  GPIOA, Pin_9,  TIM_Channel_2, TIM1_CC_IRQn, 1,  Mode_AF_PP_PD},
-    {   TIM1,  GPIOA, Pin_10, TIM_Channel_3, TIM1_CC_IRQn, 1,  Mode_AF_PP_PD},
-    {   TIM3,  GPIOB, Pin_4,  TIM_Channel_1, TIM3_IRQn,    0,  Mode_AF_PP_PD},
-    {   TIM4,  GPIOB, Pin_6,  TIM_Channel_1, TIM4_IRQn, 0, Mode_AF_PP_PD},
-    {   TIM4,  GPIOB, Pin_7,  TIM_Channel_2, TIM4_IRQn, 0, Mode_AF_PP_PD},
-    {   TIM4,  GPIOB, Pin_8,  TIM_Channel_3, TIM4_IRQn, 0, Mode_AF_PP_PD},
-    {   TIM4,  GPIOB, Pin_9,  TIM_Channel_4, TIM4_IRQn, 0, Mode_AF_PP_PD},
+    {   TIM1, GPIOA, Pin_8, TIM_Channel_1, TIM1_CC_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM1, GPIOA, Pin_9, TIM_Channel_2, TIM1_CC_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM1, GPIOA, Pin_10, TIM_Channel_3, TIM1_CC_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM3, GPIOB, Pin_4, TIM_Channel_1, TIM3_IRQn, 0, Mode_AF_PP_PD},
+    {   TIM4, GPIOB, Pin_6, TIM_Channel_1, TIM4_IRQn, 0, Mode_AF_PP_PD},
+    {   TIM4, GPIOB, Pin_7, TIM_Channel_2, TIM4_IRQn, 0, Mode_AF_PP_PD},
+    {   TIM4, GPIOB, Pin_8, TIM_Channel_3, TIM4_IRQn, 0, Mode_AF_PP_PD},
+    {   TIM4, GPIOB, Pin_9, TIM_Channel_4, TIM4_IRQn, 0, Mode_AF_PP_PD},
 
-    {   TIM2,  GPIOA, Pin_0,  TIM_Channel_1, TIM2_IRQn, 0, Mode_AF_PP},
-    {   TIM2,  GPIOA, Pin_1,  TIM_Channel_2, TIM2_IRQn, 0, Mode_AF_PP},
-    {   TIM15, GPIOA, Pin_2,  TIM_Channel_1, TIM1_BRK_TIM15_IRQn, 1, Mode_AF_PP_PD},
-    {   TIM15, GPIOA, Pin_3,  TIM_Channel_2, TIM1_BRK_TIM15_IRQn, 1, Mode_AF_PP_PD},
-    {   TIM16, GPIOA, Pin_6,  TIM_Channel_1, TIM1_UP_TIM16_IRQn, 1, Mode_AF_PP_PD},
-    {   TIM17, GPIOA, Pin_7,  TIM_Channel_1, TIM1_TRG_COM_TIM17_IRQn, 1, Mode_AF_PP_PD},
-    {   TIM2,  GPIOB, Pin_11, TIM_Channel_4, TIM2_IRQn, 0, Mode_AF_PP_PD}               // flex port
+    {   TIM2, GPIOA, Pin_0, TIM_Channel_1, TIM2_IRQn, 0, Mode_AF_PP},
+    {   TIM2, GPIOA, Pin_1, TIM_Channel_2, TIM2_IRQn, 0, Mode_AF_PP},
+    {   TIM15, GPIOA, Pin_2, TIM_Channel_1, TIM1_BRK_TIM15_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM15, GPIOA, Pin_3, TIM_Channel_2, TIM1_BRK_TIM15_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM16, GPIOA, Pin_6, TIM_Channel_1, TIM1_UP_TIM16_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM17, GPIOA, Pin_7, TIM_Channel_1, TIM1_TRG_COM_TIM17_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM2, GPIOB, Pin_11, TIM_Channel_4, TIM2_IRQn, 0, Mode_AF_PP_PD}               // flex port
 
 };
 #define MAX_TIMERS 7
 
 static const TIM_TypeDef const *timers[MAX_TIMERS] = {
-TIM1, TIM2, TIM3, TIM4, TIM15, TIM16 , TIM17 };
+    TIM1, TIM2, TIM3, TIM4, TIM15, TIM16 , TIM17};
 
 #endif
 
 #if defined(QUANTOM)
 const timerHardware_t timerHardware[] = {
-    {   TIM1,  GPIOA, Pin_10, TIM_Channel_3, TIM1_CC_IRQn, 1,  Mode_AF_PP_PD},
-    {   TIM8,  GPIOC, Pin_6,  TIM_Channel_1, TIM8_CC_IRQn, 1,  Mode_AF_PP_PD},
-    {   TIM8,  GPIOC, Pin_10, TIM_Channel_2, TIM8_CC_IRQn, 1,  Mode_AF_PP_PD},
-    {   TIM8,  GPIOC, Pin_4,  TIM_Channel_3, TIM8_CC_IRQn,    0,  Mode_AF_PP_PD},
-    {   TIM2,  GPIOA, Pin_15, TIM_Channel_1, TIM2_IRQn, 0, Mode_AF_PP_PD},
-    {   TIM2,  GPIOB, Pin_3,  TIM_Channel_2, TIM2_IRQn, 0, Mode_AF_PP_PD},
-    {   TIM5,  GPIOA, Pin_0,  TIM_Channel_1, TIM5_IRQn, 0, Mode_AF_PP_PD},
-    {   TIM5,  GPIOA, Pin_1,  TIM_Channel_2, TIM5_IRQn, 0, Mode_AF_PP_PD},
+    {   TIM1, GPIOA, Pin_10, TIM_Channel_3, TIM1_CC_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM8, GPIOC, Pin_6, TIM_Channel_1, TIM8_CC_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM8, GPIOC, Pin_7, TIM_Channel_2, TIM8_CC_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM8, GPIOC, Pin_8, TIM_Channel_3, TIM8_CC_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM2, GPIOA, Pin_15, TIM_Channel_1, TIM2_IRQn, 0, Mode_AF_PP_PD},
+    {   TIM2, GPIOB, Pin_3, TIM_Channel_2, TIM2_IRQn, 0, Mode_AF_PP_PD},
+    {   TIM5, GPIOA, Pin_0, TIM_Channel_1, TIM5_IRQn, 0, Mode_AF_PP_PD},
+    {   TIM5, GPIOA, Pin_1, TIM_Channel_2, TIM5_IRQn, 0, Mode_AF_PP_PD},
 
-    {   TIM3,  GPIOB, Pin_4,  TIM_Channel_1, TIM3_IRQn, 0, Mode_AF_PP},
-    {   TIM3,  GPIOB, Pin_5,  TIM_Channel_2, TIM3_IRQn, 0, Mode_AF_PP},
-    {   TIM3,  GPIOB, Pin_0,  TIM_Channel_3, TIM3_IRQn, 1, Mode_AF_PP_PD},
-    {   TIM3,  GPIOB, Pin_1,  TIM_Channel_4, TIM3_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM3, GPIOB, Pin_4, TIM_Channel_1, TIM3_IRQn, 0, Mode_AF_PP},
+    {   TIM3, GPIOB, Pin_5, TIM_Channel_2, TIM3_IRQn, 0, Mode_AF_PP},
+    {   TIM3, GPIOB, Pin_0, TIM_Channel_3, TIM3_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM3, GPIOB, Pin_1, TIM_Channel_4, TIM3_IRQn, 1, Mode_AF_PP_PD},
     {   TIM12, GPIOB, Pin_14, TIM_Channel_1, TIM8_BRK_TIM12_IRQn, 1, Mode_AF_PP_PD},
-    {   TIM10, GPIOB, Pin_8,  TIM_Channel_1, TIM1_UP_TIM10_IRQn, 1, Mode_AF_PP_PD},
-    {   TIM11, GPIOB, Pin_9,  TIM_Channel_1, TIM1_TRG_COM_TIM11_IRQn, 0, Mode_AF_PP_PD}               // flex port
+    {   TIM12, GPIOB, Pin_15, TIM_Channel_2, TIM8_BRK_TIM12_IRQn, 1, Mode_AF_PP_PD},
+    {   TIM10, GPIOB, Pin_8, TIM_Channel_1, TIM1_UP_TIM10_IRQn, 0, Mode_AF_PP_PD},
+    {   TIM11, GPIOB, Pin_9, TIM_Channel_1, TIM1_TRG_COM_TIM11_IRQn, 0, Mode_AF_PP_PD}
 
 };
 #define MAX_TIMERS 8
 
 static const TIM_TypeDef const *timers[MAX_TIMERS] = {
-TIM1, TIM2, TIM3, TIM5, TIM8, TIM10 , TIM11, TIM12 };
+    TIM1, TIM2, TIM3, TIM5, TIM8, TIM10 , TIM11, TIM12};
 
 #endif
 
 #define CC_CHANNELS_PER_TIMER 4 // TIM_Channel_1..4
-static const uint16_t channels[CC_CHANNELS_PER_TIMER] = {
-    TIM_Channel_1, TIM_Channel_2, TIM_Channel_3, TIM_Channel_4
-};
+static const uint16_t channels[CC_CHANNELS_PER_TIMER] = { TIM_Channel_1, TIM_Channel_2, TIM_Channel_3, TIM_Channel_4 };
 
 typedef struct timerConfig_s {
     TIM_TypeDef *tim;
@@ -177,8 +174,12 @@ void configTimeBase(TIM_TypeDef *tim, uint16_t period, uint8_t mhz)
 
     // "The counter clock frequency (CK_CNT) is equal to f CK_PSC / (PSC[15:0] + 1)." - STM32F10x Reference Manual 14.4.11
     // Thus for 1Mhz: 72000000 / 1000000 = 72, 72 - 1 = 71 = TIM_Prescaler
+#if defined(QUANTOM)
+    if ((tim == TIM2) || (tim == TIM5) || (tim == TIM3) || (tim == TIM12) )
+        TIM_TimeBaseStructure.TIM_Prescaler = ((SystemCoreClock/2) / ((uint32_t)mhz * 1000000)) - 1;
+    else
+#endif
     TIM_TimeBaseStructure.TIM_Prescaler = (SystemCoreClock / ((uint32_t)mhz * 1000000)) - 1;
-
 
     TIM_TimeBaseStructure.TIM_ClockDivision = 0;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
@@ -257,8 +258,12 @@ void TIM4_IRQHandler(void)
 {
     timCCxHandler(TIM4);
 }
-
-
+#if defined(QUANTOM)
+void TIM5_IRQHandler(void)
+{
+    timCCxHandler(TIM5);
+}
+#endif
 void TIM8_CC_IRQHandler(void)
 {
     timCCxHandler(TIM8);

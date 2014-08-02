@@ -346,7 +346,7 @@ static void evaluateCommand(void)
         case MSP_STATUS:
             headSerialReply(11);
             serialize16(cycleTime);
-#if defined(NAZEPRO)
+#if defined(NAZEPRO) || defined(QUANTOM)
             serialize16(spiGetErrorCounter());
 #endif
 #if defined(NAZE)
@@ -637,6 +637,7 @@ void serialComImpl(void)
         cliProcess();
         return;
     }
+
 
     while (serialTotalBytesWaiting(core.mspPort)) {
         c = serialRead(core.mspPort);

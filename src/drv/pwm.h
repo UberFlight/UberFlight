@@ -44,6 +44,7 @@ enum {
     PWM13,
     PWM14,
     PWM15,
+    PWM16,
     MAX_PORTS
 };
 

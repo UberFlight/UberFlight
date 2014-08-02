@@ -101,8 +101,14 @@
 #define BIT_ACC                     2
 #define BIT_TEMP                    1
 
+#if defined(QUANTOM)
+static sensor_align_e gyroAlign = CW270_DEG;
+static sensor_align_e accAlign = CW270_DEG;
+#else
 static sensor_align_e gyroAlign = CW180_DEG;
 static sensor_align_e accAlign = CW180_DEG;
+#endif
+
 
 // TODO read temperature
 //   rawMPU6000Temperature[1] = spiTransferByte(0x00);

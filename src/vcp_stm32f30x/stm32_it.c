@@ -31,7 +31,7 @@
 #include "hw_config.h"
 #include "stm32_it.h"
 #include "usb_lib.h"
-#include "vcp/usb_istr.h"
+#include "vcp_stm32f30x/usb_istr.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/

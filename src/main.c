@@ -32,15 +32,22 @@ int main(void)
 
     sensorsSet(SENSORS_SET);    // we have these sensors; SENSORS_SET defined in board.h depending on hardware platform
 
-    // start serial
+#if !(defined(NAZE))
+
 #if defined(NAZEPRO)
-    core.mainport = usbInit();
+    if (feature(FEATURE_I2C))
+        i2cInit(BOARD_I2C_PORT);
+
+#endif
+//
+
+    core.mainport = usbInit();      // start serial
     sensorsAutodetect();            // drop out any sensors that don't seem to work, init all the others.
 
     if (!sensors(SENSOR_GYRO))// if gyro was not detected, we give up now.
     failureMode(3);
-#endif
-#if defined(NAZE)
+
+#else
     core.mainport = uartOpen(USART1, NULL, mcfg.serial_baudrate, MODE_RXTX,SERIAL_NOT_INVERTED);
 #endif
 
@@ -124,7 +131,7 @@ int main(void)
         pwm_params.useAf = feature(FEATURE_AF);
         pwm_params.noPwmRx = feature(FEATURE_PPM) || feature(FEATURE_SERIALRX);
         pwm_params.useSerialrx = feature(FEATURE_SERIALRX);
-        pwm_params.useI2c = false;//feature(FEATURE_I2C);
+        pwm_params.useI2c = feature(FEATURE_I2C);
         pwm_params.useCamStab = feature(FEATURE_SERVO_TILT) || (mcfg.mixerConfiguration == MULTITYPE_GIMBAL);
         pwm_params.notorsNumber = core.notorsNumber;
         pwm_params.useTri = mcfg.mixerConfiguration == MULTITYPE_TRI;

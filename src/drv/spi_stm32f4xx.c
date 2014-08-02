@@ -46,7 +46,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // SPI Defines and Variables
 ///////////////////////////////////////////////////////////////////////////////
-
+#if defined(QUANTOM)
 #define SPI_BUSE            SPI1
 #define SPI_GPIO            GPIOA
 #define SPI_SCK_PIN         GPIO_Pin_5
@@ -58,6 +58,7 @@
 #define SPI_MOSI_PIN        GPIO_Pin_7
 #define SPI_MOSI_PIN_SOURCE GPIO_PinSource7
 #define SPI_MOSI_CLK        RCC_AHB1Periph_GPIOA
+#endif
 
 static volatile uint16_t spiErrorCount = 0;
 
@@ -72,7 +73,8 @@ bool spiInit(void)
 
     ///////////////////////////////////
 
-    RCC_AHB2PeriphClockCmd(SPI_SCK_CLK | SPI_MISO_CLK | SPI_MOSI_CLK, ENABLE);
+//    RCC_AHB2PeriphClockCmd(SPI_SCK_CLK | SPI_MISO_CLK | SPI_MOSI_CLK, ENABLE);
+
 
     GPIO_PinAFConfig(SPI_GPIO, SPI_SCK_PIN_SOURCE, GPIO_AF_SPI1);
     GPIO_PinAFConfig(SPI_GPIO, SPI_MISO_PIN_SOURCE, GPIO_AF_SPI1);
@@ -101,9 +103,9 @@ bool spiInit(void)
 
     ///////////////////////////////
 
-    GPIO_InitStructure.GPIO_Pin = HMC5983_CS_PIN;
-    GPIO_Init(HMC5983_CS_GPIO, &GPIO_InitStructure);
-    DISABLE_HMC5983;
+//    GPIO_InitStructure.GPIO_Pin = HMC5983_CS_PIN;
+//    GPIO_Init(HMC5983_CS_GPIO, &GPIO_InitStructure);
+//    DISABLE_HMC5983;
 
     ///////////////////////////////
 
@@ -112,10 +114,10 @@ bool spiInit(void)
     DISABLE_MPU6000;
 
     ///////////////////////////////
-
-    GPIO_InitStructure.GPIO_Pin = MS5611_CS_PIN;
-    GPIO_Init(MS5611_CS_GPIO, &GPIO_InitStructure);
-    DISABLE_MS5611;
+//
+//    GPIO_InitStructure.GPIO_Pin = MS5611_CS_PIN;
+//    GPIO_Init(MS5611_CS_GPIO, &GPIO_InitStructure);
+//    DISABLE_MS5611;
 
     ///////////////////////////////
 
@@ -133,9 +135,12 @@ bool spiInit(void)
 
     SPI_Init(SPI_BUSE, &SPI_InitStructure);
 
-    //SPI_RxFIFOThresholdConfig(SPI_BUSE, SPI_RxFIFOThreshold_QF);
+//    SPI_RxFIFOThresholdConfig(SPI_BUSE, SPI_RxFIFOThreshold_QF);
+
+    SPI_CalculateCRC(SPI_BUSE, DISABLE);
 
     SPI_Cmd(SPI_BUSE, ENABLE);
+
 
     return true;
 }

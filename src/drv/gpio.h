@@ -53,8 +53,10 @@
 #define digitalIn(p, i)     (p->IDR & i)
 ///////////////////////////////////////
 
+
 #define BEEP_OFF      digitalHi(BEEP_GPIO, BEEP_PIN)
 #define BEEP_ON       digitalLo(BEEP_GPIO, BEEP_PIN)
+
 #define BEEP_TOGGLE   digitalToggle(BEEP_GPIO, BEEP_PIN)
 
 #define LED0_OFF      digitalHi(LED0_GPIO, LED0_PIN)

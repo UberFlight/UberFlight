@@ -57,7 +57,7 @@
 //#define SONAR
 #define BUZZER
 #define LED0
-
+#define LED1
 
 
 
@@ -226,9 +226,15 @@ typedef struct baro_t {
 #include "stm32f4xx.h"
 #include "stm32f4xx_conf.h"
 
-#include "usb_lib.h"
-#include "vcp/usb_desc.h"
-#include "vcp/usb_pwr.h"
+#include "usb_core.h"
+#include "usbd_core.h"
+#include "usbd_cdc_core.h"
+#include "usbd_usr.h"
+#include "usbd_cdc_vcp.h"
+#include "vcp_stm32f4xx/usbd_desc.h"
+
+
+//#include "vcp/usb_pwr.h"
 
 #define BEEP_PIN    GPIO_Pin_4
 #define BEEP_GPIO   GPIOA
@@ -239,9 +245,6 @@ typedef struct baro_t {
 #define LED1_PIN    GPIO_Pin_14
 #define LED1_GPIO   GPIOC
 
-
-
-
 #define UART1_TX_PIN        GPIO_Pin_6
 #define UART1_RX_PIN        GPIO_Pin_7
 #define UART1_TX_GPIO       GPIOB
@@ -249,15 +252,12 @@ typedef struct baro_t {
 #define UART1_TX_PINSOURCE  GPIO_PinSource6
 #define UART1_RX_PINSOURCE  GPIO_PinSource7
 
-
 #define UART2_TX_PIN        GPIO_Pin_2
 #define UART2_RX_PIN        GPIO_Pin_3
 #define UART2_TX_GPIO       GPIOA
 #define UART2_RX_GPIO       GPIOA
 #define UART2_TX_PINSOURCE  GPIO_PinSource2
 #define UART2_RX_PINSOURCE  GPIO_PinSource3
-
-
 
 #define UART3_TX_PIN        GPIO_Pin_10
 #define UART3_RX_PIN        GPIO_Pin_11
@@ -284,6 +284,7 @@ typedef struct baro_t {
 #define UART_HEADER_RC USART1
 #define UART_HEADER_FLEX USART3
 
+#define BOARD_I2C_PORT I2C3
 #endif
 
 #if defined(NAZEPRO)
@@ -292,8 +293,8 @@ typedef struct baro_t {
 #include "stm32f30x_conf.h"
 
 #include "usb_lib.h"
-#include "vcp/usb_desc.h"
-#include "vcp/usb_pwr.h"
+#include "vcp_stm32f30x/usb_desc.h"
+#include "vcp_stm32f30x/usb_pwr.h"
 
 #define BEEP_PIN    GPIO_Pin_10
 #define BEEP_GPIO   GPIOB

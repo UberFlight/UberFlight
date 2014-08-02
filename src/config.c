@@ -3,12 +3,19 @@
 #include "board.h"
 #include "mw.h"
 
-#ifndef FLASH_PAGE_COUNT
+
+#if defined(QUANTOM)
+#define FLASH_PAGE_SIZE
+#define FLASH_WRITE_ADDR    0x80E0000
+
+#else
 #define FLASH_PAGE_COUNT 256
+#define FLASH_PAGE_SIZE                 ((uint16_t)0x400)
+#define FLASH_WRITE_ADDR                (0x08000000 + (uint32_t)FLASH_PAGE_SIZE * (FLASH_PAGE_COUNT - 2))       // use the last 2 KB for storage
+
 #endif
 
-#define FLASH_PAGE_SIZE                 ((uint16_t)0x400)
-#define FLASH_WRITE_ADDR                (0x08000000 + (uint32_t)FLASH_PAGE_SIZE * (FLASH_PAGE_COUNT - 2))       // use the last 2 KB for storagemaster_t mcfg;  // master config struct with data independent from profiles
+master_t mcfg;  // master config struct with data independent from profiles
 config_t cfg;   // profile config struct
 const char rcChannelLetters[] = "AERT1234";
 
@@ -96,7 +103,14 @@ void loadAndActivateConfig(void)
 
 
 #if defined(NAZEPRO) || defined(QUANTOM)
-#define FLASH_FLAG_PROTECFLAG FLASH_FLAG_WRPERR
+//#define FLASH_FLAG_PROTECFLAG
+
+#if defined(QUANTOM)
+#define FLASH_FLAG (FLASH_FLAG_EOP | FLASH_FLAG_OPERR |FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR)
+
+#else
+#define FLASH_FLAG (FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPERR)
+#endif
 
 void writeEEPROM(uint8_t b, uint8_t updateProfile)
 {
@@ -127,7 +141,8 @@ void writeEEPROM(uint8_t b, uint8_t updateProfile)
     // write it
 retry:
     FLASH_Unlock();
-    FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_PROTECFLAG);
+    FLASH_ClearFlag(FLASH_FLAG);
+
 
 
 
@@ -135,8 +150,12 @@ retry:
 //
 //    while (status == FLASH_COMPLETE && i++ < eepromConfigNUMWORD)
 //       status = FLASH_ProgramWord((uint32_t)&dst[i], ((uint32_t*)src)[i]);
-
+#if defined(QUANTOM)
+    if (FLASH_EraseSector(FLASH_Sector_11, VoltageRange_3) == FLASH_COMPLETE) {
+#else
     if (FLASH_ErasePage(FLASH_WRITE_ADDR) == FLASH_COMPLETE) {
+#endif
+
         for (i = 0; i < sizeof(master_t); i += 4) {
             status = FLASH_ProgramWord(FLASH_WRITE_ADDR + i, *(uint32_t *)((char *)&mcfg + i));
             if (status != FLASH_COMPLETE) {
