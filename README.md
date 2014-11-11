@@ -3,7 +3,7 @@
 
 ##Board##
 * NazePro STM32f3
-* Quantom STM32f4
+* Quanton STM32f4
 
 
 ##Polish me##
