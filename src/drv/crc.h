@@ -32,7 +32,7 @@ static inline void crc32Reset(void)
   RCC_AHBPeriphClockCmd(RCC_AHBPeriph_CRC, ENABLE);
 #endif
 
-#if defined(QUANTOM)
+#if defined(QUANTON)
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
 #endif
 

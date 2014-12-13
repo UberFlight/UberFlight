@@ -59,13 +59,6 @@ static void IntToUnicode(uint32_t value, uint8_t *pbuf, uint8_t len);
  *******************************************************************************/
 void Set_System(void)
 {
-#if !defined(STM32L1XX_MD) && !defined(STM32L1XX_HD) && !defined(STM32L1XX_MD_PLUS)
-    GPIO_InitTypeDef GPIO_InitStructure;
-#endif /* STM32L1XX_MD && STM32L1XX_XD */  
-
-#if defined(USB_USE_EXTERNAL_PULLUP)
-    GPIO_InitTypeDef GPIO_InitStructure;
-#endif /* USB_USE_EXTERNAL_PULLUP */ 
 
     /*!< At this stage the microcontroller clock setting is already configured, 
      this is done through SystemInit() function which is called from startup
@@ -78,47 +71,8 @@ void Set_System(void)
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 #endif /* STM32L1XX_XD */ 
 
-    /*Pull down PA12 to create USB Disconnect Pulse*/     // HJI
-#if defined(STM32F30X)                                    // HJI
-    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);   // HJI
+  usbDisconnect();
 
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;          // HJI
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;     // HJI
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;        // HJI
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;        // HJI
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;     // HJI
-#else
-            RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); // HJI
-
-            GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;// HJI
-            GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;// HJI
-            GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;// HJI
-#endif
-
-    GPIO_Init(GPIOA, &GPIO_InitStructure);                // HJI
-
-    GPIO_ResetBits(GPIOA, GPIO_Pin_12);                   // HJI
-
-    delay(200);                                           // HJI
-
-    GPIO_SetBits(GPIOA, GPIO_Pin_12);                     // HJI
-
-#if defined(STM32F37X) || defined(STM32F30X)
-
-    /*Set PA11,12 as IN - USB_DM,DP*/
-    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11 | GPIO_Pin_12;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-    /*SET PA11,12 for USB: USB_DM,DP*/
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_14);
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource12, GPIO_AF_14);
-
-#endif /* STM32F37X  && STM32F30X)*/
 
     /* Configure the EXTI line 18 connected internally to the USB IP */
     EXTI_ClearITPendingBit(EXTI_Line18);
@@ -127,6 +81,58 @@ void Set_System(void)
     EXTI_InitStructure.EXTI_LineCmd = ENABLE;
     EXTI_Init(&EXTI_InitStructure);
 }
+
+void usbDisconnect(void){
+#if !defined(STM32L1XX_MD) && !defined(STM32L1XX_HD) && !defined(STM32L1XX_MD_PLUS)
+    GPIO_InitTypeDef GPIO_InitStructure;
+#endif /* STM32L1XX_MD && STM32L1XX_XD */  
+
+#if defined(USB_USE_EXTERNAL_PULLUP)
+    GPIO_InitTypeDef GPIO_InitStructure;
+#endif /* USB_USE_EXTERNAL_PULLUP */ 
+
+ /*Pull down PA12 to create USB Disconnect Pulse*/     // HJI
+#if defined(STM32F30X)                                    // HJI
+   RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);   // HJI
+
+   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;          // HJI
+   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;     // HJI
+   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;        // HJI
+   GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;        // HJI
+   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;     // HJI
+#else
+           RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); // HJI
+
+           GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;// HJI
+           GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;// HJI
+           GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;// HJI
+#endif
+
+   GPIO_Init(GPIOA, &GPIO_InitStructure);                // HJI
+
+   GPIO_ResetBits(GPIOA, GPIO_Pin_12);                   // HJI
+
+   delay(200);                                           // HJI
+
+   GPIO_SetBits(GPIOA, GPIO_Pin_12);                     // HJI
+
+#if defined(STM32F37X) || defined(STM32F30X)
+
+   /*Set PA11,12 as IN - USB_DM,DP*/
+   RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
+   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11 | GPIO_Pin_12;
+   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+   GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+   /*SET PA11,12 for USB: USB_DM,DP*/
+   GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_14);
+   GPIO_PinAFConfig(GPIOA, GPIO_PinSource12, GPIO_AF_14);
+
+#endif /* STM32F37X  && STM32F30X)*/
+   }
 
 /*******************************************************************************
  * Function Name  : Set_USBClock

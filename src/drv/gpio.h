@@ -42,7 +42,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // GPIO Defines
 ////////////////////////////////////////////////////////////////////////////////
-#if defined(QUANTOM)
+#if defined(QUANTON)
 #define digitalHi(p, i)     { p->BSRRH = i; }
 #define digitalLo(p, i)     { p->BSRRL = i; }
 #else
@@ -84,7 +84,7 @@ typedef enum {
 
 #endif
 
-#if defined(NAZEPRO) || defined(QUANTOM)
+#if defined(NAZEPRO) || defined(QUANTON)
 
 typedef enum
 {

@@ -18,9 +18,9 @@
 //#include "uart.h"
 
 serialPort_t *usbInit(void);
+void usbReset(void);
 
 uint32_t usbAvailable(serialPort_t *instance);
-
 uint8_t usbRead(serialPort_t *instance);
 
 void usbPrint(serialPort_t *instance, uint8_t ch);

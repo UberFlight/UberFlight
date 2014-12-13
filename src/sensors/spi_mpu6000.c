@@ -101,7 +101,7 @@
 #define BIT_ACC                     2
 #define BIT_TEMP                    1
 
-#if defined(QUANTOM)
+#if defined(QUANTON)
 static sensor_align_e gyroAlign = CW270_DEG;
 static sensor_align_e accAlign = CW270_DEG;
 #else

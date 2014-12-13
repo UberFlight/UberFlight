@@ -15,7 +15,7 @@
 #
 
 # The target to build
-TARGET		?=  QUANTOM
+TARGET		?=  QUANTON
 
 # The name of the build
 BRANCH_NAME     = dev
@@ -34,15 +34,15 @@ SERIAL_DEVICE	?= /dev/ttyUSB0
 # Things that need to be maintained as the source changes
 #
 
-VALID_TARGETS	 = QUANTOM NAZEPRO NAZE
+VALID_TARGETS	 = QUANTON NAZEPRO NAZE
 
 
 # Common working directories
 ROOT		 = $(dir $(lastword $(MAKEFILE_LIST)))
-SRC_DIR		 = $(ROOT)/src
-OBJECT_DIR	 = $(ROOT)/obj
-BIN_DIR		 = $(ROOT)/obj
-CMSIS_DIR	 = $(ROOT)/lib/CMSIS
+SRC_DIR		 = $(ROOT)src
+OBJECT_DIR	 = $(ROOT)obj
+BIN_DIR		 = $(ROOT)obj
+CMSIS_DIR	 = $(ROOT)lib/CMSIS
 INCLUDE_DIRS = $(SRC_DIR)
 
 # Common Search path for sources
@@ -55,8 +55,8 @@ VPATH		:= $(SRC_DIR):$(SRC_DIR)/startup
 ifeq ($(TARGET),$(filter $(TARGET), NAZEPRO))
 
 DEVICE_MCUNAME = stm32f30x
-DIR_STDPERIPH = $(ROOT)/lib/STM32F30x_StdPeriph_Driver
-DIR_USBFS     = $(ROOT)/lib/STM32_USB-FS-Device_Driver
+DIR_STDPERIPH = $(ROOT)lib/STM32F30x_StdPeriph_Driver
+DIR_USBFS     = $(ROOT)lib/STM32_USB-FS-Device_Driver
 
 CMSIS_SRC	  = $(notdir $(wildcard $(CMSIS_DIR)/Device/ST/STM32F30x/Source/Templates/*.c))
 
@@ -67,10 +67,10 @@ INCLUDE_DIRS := $(INCLUDE_DIRS) \
 		   $(DIR_USBFS)/inc \
 		   $(CMSIS_DIR)/Include \
 		   $(CMSIS_DIR)/Device/ST/STM32F30x/Include \
-		   $(ROOT)/src/vcp_$(DEVICE_MCUNAME)
+		   $(ROOT)src/vcp_$(DEVICE_MCUNAME)
 
 
-LD_SCRIPT	 = $(ROOT)/stm32_flash_f303.ld
+LD_SCRIPT	 = $(ROOT)stm32_flash_f303.ld
 
 ARCH_FLAGS	 = -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 
 
@@ -102,7 +102,7 @@ endif
 ifeq ($(TARGET),$(filter $(TARGET), NAZE))
 
 DEVICE_MCUNAME = stm32f10x
-DIR_STDPERIPH = $(ROOT)/lib/STM32F10x_StdPeriph_Driver
+DIR_STDPERIPH = $(ROOT)lib/STM32F10x_StdPeriph_Driver
 
 CMSIS_SRC	  = $(notdir $(wildcard $(CMSIS_DIR)/Device/ST/STM32F10x/Source/Templates/*.c))
 
@@ -114,7 +114,7 @@ INCLUDE_DIRS := $(INCLUDE_DIRS) \
 		   $(CMSIS_DIR)/Device/ST/STM32F10x/Include
 
 
-LD_SCRIPT	 = $(ROOT)/stm32_flash_f103.ld
+LD_SCRIPT	 = $(ROOT)stm32_flash_f103.ld
 
 ARCH_FLAGS	 = -mthumb -mcpu=cortex-m3
 
@@ -134,13 +134,13 @@ endif
 
 
 # STM32F304xx 
-ifeq ($(TARGET),$(filter $(TARGET), QUANTOM))
+ifeq ($(TARGET),$(filter $(TARGET), QUANTON))
 
 DEVICE_MCUNAME = stm32f4xx
-DIR_STDPERIPH  = $(ROOT)/lib/STM32F4xx_StdPeriph_Driver
-DIR_USBFS      = $(ROOT)/lib/STM32_USB_Device_Library/Core
-DIR_USBCDC     = $(ROOT)/lib/STM32_USB_Device_Library/Class/cdc
-DIR_USBOTG     = $(ROOT)/lib/STM32_USB_OTG_Driver
+DIR_STDPERIPH  = $(ROOT)lib/STM32F4xx_StdPeriph_Driver
+DIR_USBFS      = $(ROOT)lib/STM32_USB_Device_Library/Core
+DIR_USBCDC     = $(ROOT)lib/STM32_USB_Device_Library/Class/cdc
+DIR_USBOTG     = $(ROOT)lib/STM32_USB_OTG_Driver
 
 CMSIS_SRC	  = $(notdir $(wildcard $(CMSIS_DIR)/Device/ST/STM32F4xx/Source/Templates/*.c))
 
@@ -153,10 +153,10 @@ INCLUDE_DIRS := $(INCLUDE_DIRS) \
 		   $(DIR_USBOTG)/inc \
 		   $(CMSIS_DIR)/Include \
 		   $(CMSIS_DIR)/Device/ST/STM32F4xx/Include \
-		   $(ROOT)/src/vcp_$(DEVICE_MCUNAME)
+		   $(ROOT)src/vcp_$(DEVICE_MCUNAME)
 
 
-LD_SCRIPT	 = $(ROOT)/stm32_flash_f4xx.ld
+LD_SCRIPT	 = $(ROOT)stm32_flash_f4xx.ld
 
 ARCH_FLAGS	 = -mthumb -mthumb-interwork -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion
 
@@ -264,7 +264,7 @@ NAZEPRO_SRC = \
 	vcp_$(DEVICE_MCUNAME)/usb_pwr.c \
 	drv/uart.c \
 
-QUANTOM_SRC = \
+QUANTON_SRC = \
 	$(COMMON_SRC) \
 	$(COMMONPRO_SRC) \
 	vcp_$(DEVICE_MCUNAME)/stm32f4xx_it.c \
@@ -307,21 +307,27 @@ NAZE_SRC = $(MW_SRC) \
 #
 
 # Tool names
-CC		= arm-none-eabi-gcc
+CC	= arm-none-eabi-gcc
 OBJCOPY	= arm-none-eabi-objcopy
+SIZE	= arm-none-eabi-size
 
 ifeq ($(DEBUG),GDB)
 OPTIMIZE = -O0
 LTO_FLAGS = $(OPTIMIZE)
+WARN_FLAGS= -Wall -pedantic -Wextra -Wshadow -Wunsafe-loop-optimizations
+## -Wno-ignored-qualifiers -Wno-unused-parameter
 else
 OPTIMIZE = -Os
 LTO_FLAGS = -flto -fuse-linker-plugin $(OPTIMIZE)
+WARN_FLAGS= 
 endif
 
 DEBUG_FLAGS = -ggdb3
 
 #
 # Tool options.
+SIZE_CFLAGS      = -A 
+
 BASE_CFLAGS	 = $(ARCH_FLAGS) \
 		   $(LTO_FLAGS) \
 		   $(addprefix -D,$(OPTIONS)) \
@@ -329,9 +335,10 @@ BASE_CFLAGS	 = $(ARCH_FLAGS) \
 		   $(addprefix -isystem,$(CMSIS_DIR)/Include) \
 		   $(addprefix -isystem,$(DIR_USBFS)/inc) \
 		   $(addprefix -isystem,$(DIR_USBOTG)/inc) \
+		   $(addprefix -isystem,$(DIR_USBCDC)/inc) \
 		   $(DEBUG_FLAGS) \
 		   -std=gnu99 \
-		   -Wall -pedantic -Wextra -Wshadow -Wunsafe-loop-optimizations -Wno-ignored-qualifiers \
+		   $(WARN_FLAGS) \
 		   -ffunction-sections \
 		   -fdata-sections \
 		   $(DEVICE_FLAGS) \
@@ -349,6 +356,7 @@ LDFLAGS		 = -lm \
 		   --specs=nano.specs \
 		   -lc -lnosys \
 		   $(ARCH_FLAGS) \
+		   $(LTO_FLAGS) \
 		   -static \
 		   -Wl,-gc-sections,-Map,$(TARGET_MAP) \
 		   -T$(LD_SCRIPT)
@@ -379,6 +387,7 @@ $(TARGET_HEX): $(TARGET_ELF)
 
 $(TARGET_ELF):  $(TARGET_OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS)
+	$(SIZE) $(SIZE_CFLAGS) $(TARGET_ELF)
 
 # Compile
 $(OBJECT_DIR)/$(TARGET)/%.o: %.c

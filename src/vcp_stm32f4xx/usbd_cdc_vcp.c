@@ -27,6 +27,8 @@
 #include "usbd_cdc_vcp.h"
 #include "stm32f4xx_conf.h"
 
+#include "macro.h"
+
 /* Private variables ---------------------------------------------------------*/
 LINE_CODING linecoding = {
 		115200, /* baud rate*/
@@ -86,6 +88,7 @@ static uint16_t VCP_DeInit(void) {
  * @retval Result of the opeartion (USBD_OK in all cases)
  */
 static uint16_t VCP_Ctrl(uint32_t Cmd, uint8_t* Buf, uint32_t Len) {
+    UNUSED(Len);
 	switch (Cmd) {
 	case SEND_ENCAPSULATED_COMMAND:
 		/* Not  needed for this driver */

@@ -38,7 +38,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 //__ALIGN_BEGIN
-USB_OTG_CORE_HANDLE    USB_OTG_dev;
+USB_OTG_CORE_HANDLE USB_OTG_dev;
 //__ALIGN_END;
 uint8_t usbDeviceConfigured = false;
 #define USB_TIMEOUT  50
@@ -48,19 +48,25 @@ static uartPort_t uartPortUSB;
 void usbSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
 // TODO restart usb with baudrate
+    UNUSED(instance);
+    UNUSED(baudRate);
 }
 
 void usbSetMode(serialPort_t *instance, portMode_t mode)
 {
     // TODO check if really nothing to do
+    UNUSED(instance);
+    UNUSED(mode);
 }
 
 bool isUsbTransmitBufferEmpty(serialPort_t *instance)
 {
+    UNUSED(instance);
     return true;
 }
 static void usbPrintf(void *p, char c)
 {
+    UNUSED(p);
     usbPrint( NULL, c);
 }
 
@@ -70,6 +76,7 @@ static void usbPrintf(void *p, char c)
 
 uint32_t usbAvailable(serialPort_t *instance)
 {
+    UNUSED(instance);
     return (VCP_DataRX_IsCharReady() != 0);
 }
 
@@ -79,12 +86,13 @@ uint32_t usbAvailable(serialPort_t *instance)
 
 uint8_t usbRead(serialPort_t *instance)
 {
+    UNUSED(instance);
     uint8_t buf;
 
     if (VCP_get_char(&buf))
-            return buf;
-        else
-            return(0);
+        return buf;
+    else
+        return (0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -93,18 +101,17 @@ uint8_t usbRead(serialPort_t *instance)
 
 void usbPrintStr(const char *str)
 {
-    if (usbDeviceConfigured == true)
-      {
+    if (usbDeviceConfigured == true) {
         VCP_send_buffer((uint8_t*)str, strlen(str));
-      }
+    }
 }
 
 void usbPrint(serialPort_t *instance, uint8_t c)
 {
-    if (usbDeviceConfigured == true)
-        {
+    UNUSED(instance);
+    if (usbDeviceConfigured == true) {
         VCP_send_buffer(&c, 1);
-        }
+    }
 
 }
 
@@ -114,17 +121,16 @@ serialPort_t *usbInit(void)
 {
     uartPort_t *s;
 
-
 #define USB_DISCONNECT_PIN GPIO_Pin_12
 #define USB_DISCONNECT_GPIO GPIOA
 
-    GPIO_InitTypeDef  GPIO_InitStructure;
+    GPIO_InitTypeDef GPIO_InitStructure;
 
-    GPIO_InitStructure.GPIO_Pin   = USB_DISCONNECT_PIN;
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
+    GPIO_InitStructure.GPIO_Pin = USB_DISCONNECT_PIN;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
     GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 
     GPIO_Init(USB_DISCONNECT_GPIO, &GPIO_InitStructure);
 
@@ -135,8 +141,6 @@ serialPort_t *usbInit(void)
     GPIO_SetBits(USB_DISCONNECT_GPIO, USB_DISCONNECT_PIN);
 
     USBD_Init(&USB_OTG_dev, USB_OTG_FS_CORE_ID, &USR_desc, &USBD_CDC_cb, &USR_cb);
-
-
 
     init_printf(NULL, usbPrintf);
 

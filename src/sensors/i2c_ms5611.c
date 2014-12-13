@@ -1,6 +1,6 @@
 #include "board.h"
 
-#if defined(QUANTOM)
+#if defined(QUANTON)
 #define MS5611_I2C                 I2C3
 #else
 #define MS5611_I2C                 I2C2

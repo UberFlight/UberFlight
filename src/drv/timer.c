@@ -52,7 +52,7 @@ static const TIM_TypeDef const *timers[MAX_TIMERS] = {
 
 #endif
 
-#if defined(QUANTOM)
+#if defined(QUANTON)
 const timerHardware_t timerHardware[] = {
     {   TIM1, GPIOA, Pin_10, TIM_Channel_3, TIM1_CC_IRQn, 1, Mode_AF_PP_PD},
     {   TIM8, GPIOC, Pin_6, TIM_Channel_1, TIM8_CC_IRQn, 1, Mode_AF_PP_PD},
@@ -174,7 +174,7 @@ void configTimeBase(TIM_TypeDef *tim, uint16_t period, uint8_t mhz)
 
     // "The counter clock frequency (CK_CNT) is equal to f CK_PSC / (PSC[15:0] + 1)." - STM32F10x Reference Manual 14.4.11
     // Thus for 1Mhz: 72000000 / 1000000 = 72, 72 - 1 = 71 = TIM_Prescaler
-#if defined(QUANTOM)
+#if defined(QUANTON)
     if ((tim == TIM2) || (tim == TIM5) || (tim == TIM3) || (tim == TIM12) )
         TIM_TimeBaseStructure.TIM_Prescaler = ((SystemCoreClock/2) / ((uint32_t)mhz * 1000000)) - 1;
     else
@@ -258,7 +258,7 @@ void TIM4_IRQHandler(void)
 {
     timCCxHandler(TIM4);
 }
-#if defined(QUANTOM)
+#if defined(QUANTON)
 void TIM5_IRQHandler(void)
 {
     timCCxHandler(TIM5);
@@ -269,7 +269,7 @@ void TIM8_CC_IRQHandler(void)
     timCCxHandler(TIM8);
 }
 
-#if !defined(QUANTOM)
+#if !defined(QUANTON)
 void TIM1_BRK_TIM15_IRQHandler(void)
 {
     timCCxHandler(TIM15);

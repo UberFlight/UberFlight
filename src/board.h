@@ -48,6 +48,8 @@
 
 #include "printf.h"
 
+#include "macro.h"
+
 #define SENSORS_SET (SENSOR_GYRO | SENSOR_ACC | SENSOR_BARO | SENSOR_MAG)
 #define GYRO
 #define ACC
@@ -221,7 +223,7 @@ typedef struct baro_t {
 ///////////////////////////////////////////////////////////////////////////////
 
 
-#if defined(QUANTOM)
+#if defined(QUANTON)
 
 #include "stm32f4xx.h"
 #include "stm32f4xx_conf.h"
@@ -381,7 +383,7 @@ typedef struct baro_t {
 #include "drv/system.h"
 #include "drv/timer.h"
 
-#if defined(QUANTOM)
+#if defined(QUANTON)
 #include "drv/uart_new.h"
 #else
 #include "drv/uart.h"

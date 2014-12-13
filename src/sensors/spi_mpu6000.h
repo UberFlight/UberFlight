@@ -39,7 +39,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 
-#if defined(QUANTOM)
+#if defined(QUANTON)
 #define MPU6000_CS_GPIO       GPIOC
 #define MPU6000_CS_PIN        GPIO_Pin_4
 #define MPU6000_INT_GPIO      GPIOC

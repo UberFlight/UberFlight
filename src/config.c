@@ -4,7 +4,7 @@
 #include "mw.h"
 
 
-#if defined(QUANTOM)
+#if defined(QUANTON)
 #define FLASH_PAGE_SIZE
 #define FLASH_WRITE_ADDR    0x80E0000
 
@@ -102,10 +102,10 @@ void loadAndActivateConfig(void)
 }
 
 
-#if defined(NAZEPRO) || defined(QUANTOM)
+#if defined(NAZEPRO) || defined(QUANTON)
 //#define FLASH_FLAG_PROTECFLAG
 
-#if defined(QUANTOM)
+#if defined(QUANTON)
 #define FLASH_FLAG (FLASH_FLAG_EOP | FLASH_FLAG_OPERR |FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR)
 
 #else
@@ -150,7 +150,7 @@ retry:
 //
 //    while (status == FLASH_COMPLETE && i++ < eepromConfigNUMWORD)
 //       status = FLASH_ProgramWord((uint32_t)&dst[i], ((uint32_t*)src)[i]);
-#if defined(QUANTOM)
+#if defined(QUANTON)
     if (FLASH_EraseSector(FLASH_Sector_11, VoltageRange_3) == FLASH_COMPLETE) {
 #else
     if (FLASH_ErasePage(FLASH_WRITE_ADDR) == FLASH_COMPLETE) {
