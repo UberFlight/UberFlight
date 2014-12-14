@@ -19,7 +19,7 @@ master_t mcfg;  // master config struct with data independent from profiles
 config_t cfg;   // profile config struct
 const char rcChannelLetters[] = "AERT1234";
 
-static const uint8_t EEPROM_CONF_VERSION = 65;
+static const uint8_t EEPROM_CONF_VERSION = 73;
 static uint32_t enabledSensors = 0;
 static void resetConf(void);
 
@@ -269,7 +269,8 @@ static void resetConf(void)
     mcfg.mixerConfiguration = MULTITYPE_QUADX;
     featureClearAll();
     featureSet(FEATURE_VBAT);
-    featureSet(FEATURE_SERIALRX);
+    featureSet(FEATURE_PPM);
+   // featureSet(FEATURE_SERIALRX);
 
     // global settings
     mcfg.current_profile = 0;       // default profile
@@ -286,14 +287,18 @@ static void resetConf(void)
     mcfg.board_align_pitch = 0;
     mcfg.board_align_yaw = 0;
     mcfg.acc_hardware = ACC_DEFAULT;     // default/autodetect
+    mcfg.mag_hardware = MAG_DEFAULT;
     mcfg.max_angle_inclination = 500;    // 50 degrees
     mcfg.yaw_control_direction = 1;
     mcfg.moron_threshold = 32;
+    mcfg.currentscale = 400; // for Allegro ACS758LCB-100U (40mV/A)
     mcfg.vbatscale = 110;
     mcfg.vbatmaxcellvoltage = 43;
     mcfg.vbatmincellvoltage = 33;
+    mcfg.vbatwarningcellvoltage = 35;
     mcfg.power_adc_channel = 0;
     mcfg.serialrx_type = 0;
+    mcfg.spektrum_sat_bind = 0;
     mcfg.telemetry_provider = TELEMETRY_PROVIDER_MSP;
     mcfg.telemetry_port = TELEMETRY_PORT_UART;
     mcfg.telemetry_switch = 0;
@@ -301,8 +306,8 @@ static void resetConf(void)
     mcfg.mincheck = 1100;
     mcfg.maxcheck = 1900;
     mcfg.retarded_arm = 0;       // disable arm/disarm on roll left/right
-    mcfg.flaps_speed = 0;
-    mcfg.fixedwing_althold_dir = 1;
+    mcfg.disarm_kill_switch = 1; // AUX disarm independently of throttle value
+    mcfg.fw_althold_dir = 1;
     // Motor/ESC/Servo
     mcfg.minthrottle = 1150;
     mcfg.maxthrottle = 1850;
@@ -311,8 +316,10 @@ static void resetConf(void)
     mcfg.deadband3d_high = 1514;
     mcfg.neutral3d = 1460;
     mcfg.deadband3d_throttle = 50;
-    mcfg.motor_pwm_rate = 400;
+    mcfg.motor_pwm_rate = MOTOR_PWM_RATE;
     mcfg.servo_pwm_rate = 50;
+    // safety features
+    mcfg.auto_disarm_board = 5; // auto disarm after 5 sec if motors not started or disarmed
     // gps/nav stuff
     mcfg.gps_type = GPS_NMEA;
     mcfg.gps_baudrate = GPS_BAUD_115200;
@@ -324,6 +331,7 @@ static void resetConf(void)
     mcfg.looptime = 3500;
     mcfg.emf_avoidance = 0;
     mcfg.rssi_aux_channel = 0;
+    mcfg.rssi_adc_max = 4095;
 
     cfg.pidController = 0;
     cfg.P8[ROLL] = 40;
@@ -379,7 +387,8 @@ static void resetConf(void)
     cfg.small_angle = 25;
 
     // Radio
-    parseRcChannels("TAER1234");
+    parseRcChannels("AETR1234"); // ppm
+    //parseRcChannels("TAER1234"); // sepktsat
     cfg.deadband = 0;
     cfg.yawdeadband = 0;
     cfg.alt_hold_throttle_neutral = 40;
@@ -415,7 +424,18 @@ static void resetConf(void)
     cfg.nav_speed_min = 100;
     cfg.nav_speed_max = 300;
     cfg.ap_mode = 40;
-
+    // fw stuff
+    cfg.fw_roll_throw = 0.5f;
+    cfg.fw_pitch_throw = 0.5f;
+    cfg.fw_gps_maxcorr = 20;
+    cfg.fw_gps_rudder = 15;
+    cfg.fw_gps_maxclimb = 15;
+    cfg.fw_gps_maxdive = 15;
+    cfg.fw_climb_throttle = 1900;
+    cfg.fw_cruise_throttle = 1500;
+    cfg.fw_idle_throttle = 1300;
+    cfg.fw_scaler_throttle = 8;
+    cfg.fw_roll_comp = 1;
     // control stuff
     mcfg.reboot_character = 'R';
 

@@ -1,5 +1,6 @@
 #include "board.h"
 #include "mw.h"
+#include "buzzer.h"
 
 uint16_t calibratingA = 0;      // the calibration is done is the main loop. Calibrating decreases at each cycle down to 0, then we enter in a normal mode.
 uint16_t calibratingB = 0;      // baro calibration = get new ground pressure value
@@ -260,7 +261,7 @@ void ACC_Common(void)
             if (InflightcalibratingA == 1) {
                 AccInflightCalibrationActive = false;
                 AccInflightCalibrationMeasurementDone = true;
-                toggleBeep = 2;      // buzzer for indicatiing the end of calibration
+                buzzer(BUZZER_ACC_CALIBRATION);      // buzzer for indicatiing the end of calibration
                 // recover saved values to maintain current flight behavior until new values are transferred
                 mcfg.accZero[ROLL] = accZero_saved[ROLL];
                 mcfg.accZero[PITCH] = accZero_saved[PITCH];
@@ -487,3 +488,20 @@ void Sonar_update(void)
 }
 
 #endif
+uint16_t RSSI_getValue(void)
+{
+    uint16_t value = 0;
+
+    if (mcfg.rssi_aux_channel > 0) {
+        const int16_t rssiChannelData = rcData[AUX1 + mcfg.rssi_aux_channel - 1];
+        // Range of rssiChannelData is [1000;2000]. rssi should be in [0;1023];
+        value = (uint16_t)((constrain(rssiChannelData - 1000, 0, 1000) / 1000.0f) * 1023.0f);
+    } else if (mcfg.rssi_adc_channel > 0) {
+        const int16_t rssiData = (((int32_t)(adcGetChannel(ADC_RSSI) - mcfg.rssi_adc_offset)) * 1023L) / mcfg.rssi_adc_max;
+        // Set to correct range [0;1023]
+        value = constrain(rssiData, 0, 1023);
+    }
+
+    // return range [0;1023]
+    return value;
+}

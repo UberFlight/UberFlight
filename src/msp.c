@@ -6,8 +6,9 @@
 // Multiwii Serial Protocol 0
 #define MSP_VERSION              0
 #define CAP_PLATFORM_32BIT          ((uint32_t)1 << 31)
+#define CAP_BASEFLIGHT_CONFIG       ((uint32_t)1 << 30)
 #define CAP_DYNBALANCE              ((uint32_t)1 << 2)
-#define CAP_FLAPS                   ((uint32_t)1 << 3)
+#define CAP_FW_FLAPS                ((uint32_t)1 << 3)
 
 #define MSP_IDENT                100    //out message         multitype + multiwii version + protocol version + capability variable
 #define MSP_STATUS               101    //out message         cycletime & errors_count & sensor present & box activation & current setting number
@@ -62,15 +63,48 @@
 #define MSP_SET_ACC_TRIM         239    //in message          set acc angle trim values
 #define MSP_GPSSVINFO            164    //out message         get Signal Strength (only U-Blox)
 
+// Additional private MSP for baseflight configurator
+#define MSP_RCMAP                64     //out message         get channel map (also returns number of channels total)
+#define MSP_SET_RCMAP            65     //in message          set rc map, numchannels to set comes from MSP_RCMAP
+#define MSP_CONFIG               66     //out message         baseflight-specific settings that aren't covered elsewhere
+#define MSP_SET_CONFIG           67     //in message          baseflight-specific settings save
+#define MSP_REBOOT               68     //in message          reboot settings
+#define MSP_BUILDINFO            69     //out message         build date as well as some space for future expansion
+
 #define INBUF_SIZE 64
 
 struct box_t {
     const uint8_t boxIndex;         // this is from boxnames enum
     const char *boxName;            // GUI-readable box name
     const uint8_t permanentId;      //
-} boxes[] = { { BOXARM, "ARM;", 0 }, { BOXANGLE, "ANGLE;", 1 }, { BOXHORIZON, "HORIZON;", 2 }, { BOXBARO, "BARO;", 3 }, { BOXVARIO, "VARIO;", 4 }, { BOXMAG, "MAG;", 5 }, { BOXHEADFREE, "HEADFREE;", 6 }, { BOXHEADADJ, "HEADADJ;", 7 }, { BOXCAMSTAB, "CAMSTAB;", 8 }, { BOXCAMTRIG,
-        "CAMTRIG;", 9 }, { BOXGPSHOME, "GPS HOME;", 10 }, { BOXGPSHOLD, "GPS HOLD;", 11 }, { BOXPASSTHRU, "PASSTHRU;", 12 }, { BOXBEEPERON, "BEEPER;", 13 }, { BOXLEDMAX, "LEDMAX;", 14 }, { BOXLEDLOW, "LEDLOW;", 15 }, { BOXLLIGHTS, "LLIGHTS;", 16 }, { BOXCALIB, "CALIB;", 17 }, {
-        BOXGOV, "GOVERNOR;", 18 }, { BOXOSD, "OSD SW;", 19 }, { BOXTELEMETRY, "TELEMETRY;", 20 }, { CHECKBOXITEMS, NULL, 0xFF } };
+}
+boxes[] = { 
+	{ BOXARM, "ARM;", 0 },
+	{ BOXANGLE, "ANGLE;", 1 },
+	{ BOXHORIZON, "HORIZON;", 2 },
+	{ BOXBARO, "BARO;", 3 },
+	{ BOXVARIO, "VARIO;", 4 },
+	{ BOXMAG, "MAG;", 5 },
+	{ BOXHEADFREE, "HEADFREE;", 6 },
+	{ BOXHEADADJ, "HEADADJ;", 7 },
+	{ BOXCAMSTAB, "CAMSTAB;", 8 },
+	{ BOXCAMTRIG, "CAMTRIG;", 9 },
+	{ BOXGPSHOME, "GPS HOME;", 10 },
+	{ BOXGPSHOLD, "GPS HOLD;", 11 },
+	{ BOXPASSTHRU, "PASSTHRU;", 12 },
+	{ BOXBEEPERON, "BEEPER;", 13 },
+	{ BOXLEDMAX, "LEDMAX;", 14 },
+	{ BOXLEDLOW, "LEDLOW;", 15 },
+	{ BOXLLIGHTS, "LLIGHTS;", 16 },
+	{ BOXCALIB, "CALIB;", 17 }, 
+	{ BOXGOV, "GOVERNOR;", 18 },
+	{ BOXOSD, "OSD SW;", 19 },
+	{ BOXTELEMETRY, "TELEMETRY;", 20 },
+    { BOXSERVO1, "SERVO1;", 21 },
+    { BOXSERVO2, "SERVO2;", 22 },
+    { BOXSERVO3, "SERVO3;", 23 },
+	{ CHECKBOXITEMS, NULL, 0xFF }
+};
 
 // this is calculated at startup based on enabled features.
 static uint8_t availableBoxes[CHECKBOXITEMS];
@@ -78,6 +112,8 @@ static uint8_t availableBoxes[CHECKBOXITEMS];
 static uint8_t numberBoxItems = 0;
 // from mixer.c
 extern int16_t motor_disarmed[MAX_MOTORS];
+
+static bool pendReboot = false;
 
 static const char pidnames[] = "ROLL;"
         "PITCH;"
@@ -248,14 +284,117 @@ void mspInit(void)
     availableBoxes[numberBoxItems++] = BOXOSD;
     if (feature(FEATURE_TELEMETRY && mcfg.telemetry_switch))
         availableBoxes[numberBoxItems++] = BOXTELEMETRY;
-
+    if (mcfg.mixerConfiguration == MULTITYPE_CUSTOM_PLANE) {
+        availableBoxes[numberBoxItems++] = BOXSERVO1;
+        availableBoxes[numberBoxItems++] = BOXSERVO2;
+        availableBoxes[numberBoxItems++] = BOXSERVO3;
+    }
 }
 
+static uint8_t getOldServoConfig(uint8_t servoIndex)
+{
+    uint8_t tmpRate = cfg.servoConf[servoIndex].rate;
+    
+    switch (mcfg.mixerConfiguration) {
+        case MULTITYPE_BI:
+            if (servoIndex == 4) {
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_PITCH))
+                    tmpRate |= 1;
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_YAW))
+                    tmpRate |= 2;
+            }
+            
+            if (servoIndex == 5) {
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_PITCH))
+                    tmpRate |= 1;
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_YAW))
+                    tmpRate |= 2;
+            }
+            
+            break;
+        case MULTITYPE_TRI:
+            if (servoIndex == 5)
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_YAW))
+                    tmpRate |= 1;
+            
+            break;
+        case MULTITYPE_FLYING_WING:
+            if (servoIndex == 3) {
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_PITCH))
+                    tmpRate |= 1;
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_ROLL))
+                    tmpRate |= 2;
+            }
+            
+            if (servoIndex == 4) {
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_PITCH))
+                    tmpRate |= 1;
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_ROLL))
+                    tmpRate |= 2;
+            }
+
+            break;
+        case MULTITYPE_DUALCOPTER:
+            if (servoIndex == 4)
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_PITCH))
+                    tmpRate |= 1;
+            
+            if (servoIndex == 5)
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_ROLL))
+                    tmpRate |= 1;
+            
+            
+            break;
+        case MULTITYPE_SINGLECOPTER:
+            if (servoIndex == 3) {
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_PITCH))
+                    tmpRate |= 1;
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_YAW))
+                    tmpRate |= 2;
+            }
+            
+            if (servoIndex == 4) {
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_PITCH))
+                    tmpRate |= 1;
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_YAW))
+                    tmpRate |= 2;
+            }
+            
+            if (servoIndex == 5) {
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_ROLL))
+                    tmpRate |= 1;
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_YAW))
+                    tmpRate |= 2;
+            }
+            
+            if (servoIndex == 6) {
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_ROLL))
+                    tmpRate |= 1;
+                if (cfg.servoConf[servoIndex].direction & (1 << INPUT_YAW))
+                    tmpRate |= 2;
+            }
+            
+            break;
+    }
+    return tmpRate;
+}
+
+static void storeOldServoConfig(uint8_t i, uint8_t rate, uint8_t servoIndex, uint8_t oldChannel, uint8_t newChannel)
+{
+    if (i == servoIndex) {
+        if (rate & oldChannel)
+            cfg.servoConf[servoIndex].direction |= 1 << newChannel;
+        else
+            cfg.servoConf[servoIndex].direction &= ~(1 << newChannel);
+    }
+}
 static void evaluateCommand(void)
 {
     uint32_t i, j, tmp, junk;
     uint8_t wp_no;
     int32_t lat = 0, lon = 0, alt = 0;
+    
+    const char *build = __DATE__;
 
     switch (cmdMSP) {
         case MSP_SET_RAW_RC:
@@ -303,18 +442,25 @@ static void evaluateCommand(void)
             headSerialReply(0);
             break;
         case MSP_SET_MISC:
-            read16(); // powerfailmeter
+	        tmp = read16();
+	        // sanity check
+	        if (tmp < 1600 && tmp > 1400)
+	            mcfg.midrc = tmp;
             mcfg.minthrottle = read16();
             mcfg.maxthrottle = read16();
             mcfg.mincommand = read16();
             cfg.failsafe_throttle = read16();
-            read16();
-            read32();
+        mcfg.gps_type = read8();
+        mcfg.gps_baudrate = read8();
+        mcfg.gps_ubx_sbas = read8();
+        mcfg.multiwiicurrentoutput = read8();
+        mcfg.rssi_aux_channel = read8();
+        read8();
             cfg.mag_declination = read16() * 10;
             mcfg.vbatscale = read8();           // actual vbatscale as intended
             mcfg.vbatmincellvoltage = read8();  // vbatlevel_warn1 in MWC2.3 GUI
             mcfg.vbatmaxcellvoltage = read8();  // vbatlevel_warn2 in MWC2.3 GUI
-            read8();                            // vbatlevel_crit (unused)
+        mcfg.vbatwarningcellvoltage = read8(); // vbatlevel when buzzer starts to alert
             headSerialReply(0);
             break;
         case MSP_SET_MOTOR:
@@ -338,10 +484,10 @@ static void evaluateCommand(void)
             break;
         case MSP_IDENT:
             headSerialReply(7);
-            serialize8( VERSION);                // multiwii version
+            serialize8(VERSION);                // multiwii version
             serialize8(mcfg.mixerConfiguration); // type of multicopter
-            serialize8( MSP_VERSION);            // MultiWii Serial Protocol Version
-            serialize32( CAP_PLATFORM_32BIT | CAP_DYNBALANCE | (mcfg.flaps_speed ? CAP_FLAPS : 0));        // "capability"
+            serialize8(MSP_VERSION);            // MultiWii Serial Protocol Version
+            serialize32(CAP_PLATFORM_32BIT | CAP_BASEFLIGHT_CONFIG  | CAP_DYNBALANCE | CAP_FW_FLAPS);        // "capability"
             break;
         case MSP_STATUS:
             headSerialReply(11);
@@ -357,9 +503,23 @@ static void evaluateCommand(void)
             // the bits in order, instead of setting the enabled bits based on BOXINDEX. WHERE IS THE FUCKING LOGIC IN THIS, FUCKWADS.
             // Serialize the boxes in the order we delivered them, until multiwii retards fix their shit
             junk = 0;
-            tmp = f.ANGLE_MODE << BOXANGLE | f.HORIZON_MODE << BOXHORIZON | f.BARO_MODE << BOXBARO | f.MAG_MODE << BOXMAG | f.HEADFREE_MODE << BOXHEADFREE | rcOptions[BOXHEADADJ] << BOXHEADADJ | rcOptions[BOXCAMSTAB] << BOXCAMSTAB | rcOptions[BOXCAMTRIG] << BOXCAMTRIG
-                    | f.GPS_HOME_MODE << BOXGPSHOME | f.GPS_HOLD_MODE << BOXGPSHOLD | f.PASSTHRU_MODE << BOXPASSTHRU | rcOptions[BOXBEEPERON] << BOXBEEPERON | rcOptions[BOXLEDMAX] << BOXLEDMAX | rcOptions[BOXLLIGHTS] << BOXLLIGHTS | rcOptions[BOXVARIO] << BOXVARIO
-                    | rcOptions[BOXCALIB] << BOXCALIB | rcOptions[BOXGOV] << BOXGOV | rcOptions[BOXOSD] << BOXOSD | rcOptions[BOXTELEMETRY] << BOXTELEMETRY | f.ARMED << BOXARM;
+        tmp = f.ANGLE_MODE << BOXANGLE | f.HORIZON_MODE << BOXHORIZON |
+                    f.BARO_MODE << BOXBARO | f.MAG_MODE << BOXMAG | f.HEADFREE_MODE << BOXHEADFREE | rcOptions[BOXHEADADJ] << BOXHEADADJ |
+                    rcOptions[BOXCAMSTAB] << BOXCAMSTAB | rcOptions[BOXCAMTRIG] << BOXCAMTRIG |
+                    f.GPS_HOME_MODE << BOXGPSHOME | f.GPS_HOLD_MODE << BOXGPSHOLD |
+                    f.PASSTHRU_MODE << BOXPASSTHRU |
+                    rcOptions[BOXBEEPERON] << BOXBEEPERON |
+                    rcOptions[BOXLEDMAX] << BOXLEDMAX |
+                    rcOptions[BOXLLIGHTS] << BOXLLIGHTS |
+                    rcOptions[BOXVARIO] << BOXVARIO |
+                    rcOptions[BOXCALIB] << BOXCALIB |
+                    rcOptions[BOXGOV] << BOXGOV |
+                    rcOptions[BOXOSD] << BOXOSD |
+                    rcOptions[BOXTELEMETRY] << BOXTELEMETRY |
+                    rcOptions[BOXSERVO1] << BOXSERVO1 |
+                    rcOptions[BOXSERVO2] << BOXSERVO2 |
+                    rcOptions[BOXSERVO3] << BOXSERVO3 |
+                    f.ARMED << BOXARM;
             for (i = 0; i < numberBoxItems; i++) {
                 int flag = (tmp & (1 << availableBoxes[i]));
                 if (flag)
@@ -392,7 +552,7 @@ static void evaluateCommand(void)
                 serialize16(cfg.servoConf[i].min);
                 serialize16(cfg.servoConf[i].max);
                 serialize16(cfg.servoConf[i].middle);
-                serialize8(cfg.servoConf[i].rate);
+            serialize8(getOldServoConfig(i));
             }
             break;
         case MSP_SET_SERVO_CONF:
@@ -401,7 +561,50 @@ static void evaluateCommand(void)
                 cfg.servoConf[i].min = read16();
                 cfg.servoConf[i].max = read16();
                 cfg.servoConf[i].middle = read16();
-                cfg.servoConf[i].rate = read8();
+            tmp = read8();
+            // trash old servo direction
+            cfg.servoConf[i].rate = tmp & 0xfc;
+            
+            // store old style servo direction depending on current mixer configuration
+            switch (mcfg.mixerConfiguration) {
+                case MULTITYPE_BI:
+                    storeOldServoConfig(i, tmp, 4, 1, INPUT_PITCH);
+                    storeOldServoConfig(i, tmp, 5, 1, INPUT_PITCH);
+                    
+                    storeOldServoConfig(i, tmp, 4, 2, INPUT_YAW);
+                    storeOldServoConfig(i, tmp, 5, 2, INPUT_YAW);
+                    
+                    break;
+                case MULTITYPE_TRI:
+                    storeOldServoConfig(i, tmp, 5, 1, INPUT_YAW);
+                    
+                    break;
+                case MULTITYPE_FLYING_WING:
+                    storeOldServoConfig(i, tmp, 3, 1, INPUT_PITCH);
+                    storeOldServoConfig(i, tmp, 4, 1, INPUT_PITCH);
+                    
+                    storeOldServoConfig(i, tmp, 3, 2, INPUT_ROLL);
+                    storeOldServoConfig(i, tmp, 4, 2, INPUT_ROLL);
+
+                    break;
+                case MULTITYPE_DUALCOPTER:
+                    storeOldServoConfig(i, tmp, 4, 1, INPUT_PITCH);
+                    storeOldServoConfig(i, tmp, 5, 1, INPUT_ROLL);
+                    
+                    break;
+                case MULTITYPE_SINGLECOPTER:
+                    storeOldServoConfig(i, tmp, 3, 1, INPUT_PITCH);
+                    storeOldServoConfig(i, tmp, 4, 1, INPUT_PITCH);
+                    storeOldServoConfig(i, tmp, 5, 1, INPUT_ROLL);
+                    storeOldServoConfig(i, tmp, 6, 1, INPUT_ROLL);
+                    
+                    storeOldServoConfig(i, tmp, 3, 2, INPUT_YAW);
+                    storeOldServoConfig(i, tmp, 4, 2, INPUT_YAW);
+                    storeOldServoConfig(i, tmp, 5, 2, INPUT_YAW);
+                    storeOldServoConfig(i, tmp, 6, 2, INPUT_YAW);
+                    
+                    break;
+            }
             }
             break;
         case MSP_MOTOR:
@@ -441,10 +644,13 @@ static void evaluateCommand(void)
             break;
         case MSP_ANALOG:
             headSerialReply(7);
-            serialize8(vbat);
-            serialize16(0); // power meter trash
+        serialize8((uint8_t)constrain(vbat, 0, 255));
+        serialize16((uint16_t)constrain(mAhdrawn, 0, 0xFFFF)); // milliamphours drawn from battery
             serialize16(rssi);
-            serialize16(0); // amperage
+        if (mcfg.multiwiicurrentoutput)
+            serialize16((uint16_t)constrain((abs(amperage) * 10), 0, 0xFFFF)); // send amperage in 0.001 A steps
+        else
+            serialize16((uint16_t)constrain(abs(amperage), 0, 0xFFFF)); // send amperage in 0.01 A steps
             break;
         case MSP_RC_TUNING:
             headSerialReply(7);
@@ -488,18 +694,22 @@ static void evaluateCommand(void)
             break;
         case MSP_MISC:
             headSerialReply(2 * 6 + 4 + 2 + 4);
-            serialize16(0); // intPowerTrigger1 (aka useless trash)
+        serialize16(mcfg.midrc);
             serialize16(mcfg.minthrottle);
             serialize16(mcfg.maxthrottle);
             serialize16(mcfg.mincommand);
             serialize16(cfg.failsafe_throttle);
-            serialize16(0); // plog useless shit
-            serialize32(0); // plog useless shit
+        serialize8(mcfg.gps_type);
+        serialize8(mcfg.gps_baudrate);
+        serialize8(mcfg.gps_ubx_sbas);
+        serialize8(mcfg.multiwiicurrentoutput);
+        serialize8(mcfg.rssi_aux_channel);
+        serialize8(0);
             serialize16(cfg.mag_declination / 10); // TODO check this shit
             serialize8(mcfg.vbatscale);
             serialize8(mcfg.vbatmincellvoltage);
             serialize8(mcfg.vbatmaxcellvoltage);
-            serialize8(0);
+        serialize8(mcfg.vbatwarningcellvoltage);
             break;
         case MSP_MOTOR_PINS:
             headSerialReply(8);
@@ -602,6 +812,57 @@ static void evaluateCommand(void)
                 serialize8(GPS_svinfo_cno[i]);
             }
             break;
+
+    case MSP_SET_CONFIG:
+        headSerialReply(0);
+        mcfg.mixerConfiguration = read8(); // multitype
+        featureClearAll();
+        featureSet(read32()); // features bitmap
+        mcfg.serialrx_type = read8(); // serialrx_type
+        mcfg.board_align_roll = read16(); // board_align_roll
+        mcfg.board_align_pitch = read16(); // board_align_pitch
+        mcfg.board_align_yaw = read16(); // board_align_yaw
+        mcfg.currentscale = read16();
+        mcfg.currentoffset = read16();
+        /// ???
+        break;
+    case MSP_CONFIG:
+        headSerialReply(1 + 4 + 1 + 2 + 2 + 2 + 4);
+        serialize8(mcfg.mixerConfiguration);
+        serialize32(featureMask());
+        serialize8(mcfg.serialrx_type);
+        serialize16(mcfg.board_align_roll);
+        serialize16(mcfg.board_align_pitch);
+        serialize16(mcfg.board_align_yaw);
+        serialize16(mcfg.currentscale);
+        serialize16(mcfg.currentoffset);
+        /// ???
+        break;
+
+    case MSP_RCMAP:
+        headSerialReply(MAX_INPUTS); // TODO fix this
+        for (i = 0; i < MAX_INPUTS; i++)
+            serialize8(mcfg.rcmap[i]);
+        break;
+    case MSP_SET_RCMAP:
+        headSerialReply(0);
+        for (i = 0; i < MAX_INPUTS; i++)
+            mcfg.rcmap[i] = read8();
+        break;
+
+    case MSP_REBOOT:
+        headSerialReply(0);
+        pendReboot = true;
+        break;
+
+    case MSP_BUILDINFO:
+        headSerialReply(11 + 4 + 4);
+        for (i = 0; i < 11; i++)
+            serialize8(build[i]); // MMM DD YYYY as ascii, MMM = Jan/Feb... etc
+        serialize32(0); // future exp
+        serialize32(0); // future exp
+        break;
+
         default:                   // we do not know how to handle the (valid) message, indicate error MSP $M!
             headSerialError(0);
             break;

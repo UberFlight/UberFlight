@@ -5,6 +5,8 @@
 #include "cli.h"
 #include "telemetry_common.h"
 
+#include "buzzer.h"
+
 flags_t f;
 int16_t debug[4];
 uint8_t toggleBeep = 0;
@@ -40,14 +42,14 @@ int16_t axisPID[3];
 // GPS
 // **********************
 int32_t GPS_coord[2];
-int32_t GPS_home[2];
-int32_t GPS_hold[2];
+int32_t GPS_home[3];
+int32_t GPS_hold[3];
 uint8_t GPS_numSat;
 uint16_t GPS_distanceToHome;        // distance to home point in meters
 int16_t GPS_directionToHome;        // direction to home or hol point in degrees
 uint16_t GPS_altitude, GPS_speed;   // altitude in 0.1m and speed in 0.1m/s
 uint8_t GPS_update = 0;             // it's a binary toogle to distinct a GPS position update
-int16_t GPS_angle[2] = { 0, 0 };    // it's the angles that must be applied for GPS correction
+int16_t GPS_angle[3] = { 0, 0 };    // it's the angles that must be applied for GPS correction
 uint16_t GPS_ground_course = 0;     // degrees * 10
 int16_t nav[2];
 int16_t nav_rated[2];               // Adding a rate controller to the navigation to make it smoother
@@ -67,7 +69,11 @@ uint16_t InflightcalibratingA = 0;
 
 // Battery monitoring stuff
 uint8_t batteryCellCount = 3;       // cell count
-uint16_t batteryWarningVoltage;     // annoying buzzer after this one, battery ready to be dead
+uint16_t batteryWarningVoltage;     // slow buzzer after this one, recommended 80% of battery used. Time to land.
+uint16_t batteryCriticalVoltage;    // annoying buzzer after this one, battery is going to be dead.
+
+// Time of automatic disarm when "Don't spin the motors when armed" is enabled.
+static uint32_t disarmTime = 0;
 
 void blinkLED(uint8_t num, uint8_t wait, uint8_t repeat)
 {
@@ -95,10 +101,8 @@ void annexCode(void)
     static uint8_t vbatTimer = 0;
     static int32_t vbatRaw = 0;
     static int32_t amperageRaw = 0;
-    static uint32_t mAhdrawnRaw = 0;
-    static uint32_t vbatCycleTime = 0;
-
-//    int i;
+    static int64_t mAhdrawnRaw = 0;
+    static int32_t vbatCycleTime = 0;
 
     // PITCH & ROLL only dynamic PID adjustemnt,  depending on throttle value
     if (rcData[THROTTLE] < cfg.tpa_breakpoint) {
@@ -179,13 +183,16 @@ void annexCode(void)
             vbat = voltageMonitor();
 #endif
         }
-        if ((vbat > batteryWarningVoltage) || (vbat < mcfg.vbatmincellvoltage)) { // VBAT ok, buzzer off
-            buzzerFreq = 0;
-        } else
-            buzzerFreq = 4;     // low battery
+        // Buzzers for low and critical battery levels
+        if (vbat <= batteryCriticalVoltage)
+            buzzer(BUZZER_BAT_CRIT_LOW);     // Critically low battery
+        else if (vbat <= batteryWarningVoltage)
+            buzzer(BUZZER_BAT_LOW);     // low battery
     }
+    // update buzzer handler
+    buzzerUpdate();
 
-    buzzer(buzzerFreq);         // external buzzer routine that handles buzzer events globally now
+    //buzzer(buzzerFreq);         // external buzzer routine that handles buzzer events globally now
 
     if ((calibratingA > 0 && sensors(SENSOR_ACC)) || (calibratingG > 0)) {      // Calibration phasis
         LED0_TOGGLE
@@ -277,6 +284,12 @@ static void mwArm(void)
         if (!f.ARMED) {         // arm now!
             f.ARMED = 1;
             headFreeModeHold = heading;
+            // Beep for inform about arming
+            if (feature(FEATURE_GPS) && f.GPS_FIX && GPS_numSat >= 5)
+                buzzer(BUZZER_ARMING_GPS_FIX);
+            else
+                buzzer(BUZZER_ARMING);
+
         }
     } else if (!f.ARMED) {
         blinkLED(2, 255, 1);
@@ -285,8 +298,14 @@ static void mwArm(void)
 
 static void mwDisarm(void)
 {
-    if (f.ARMED)
+    if (f.ARMED){
         f.ARMED = 0;
+        // Beep for inform about disarming
+        buzzer(BUZZER_DISARMING);
+        // Reset disarm time so that it works next time we arm the board.
+        if (disarmTime != 0)
+            disarmTime = 0;
+    }
 }
 
 static void mwVario(void)
@@ -482,29 +501,27 @@ void loop(void)
                 mwDisarm();
         }
 
-        // Read value of AUX channel as rssi
-        // 0 is disable, 1-4 is AUX{1..4}
-        if (mcfg.rssi_aux_channel > 0) {
-            const int16_t rssiChannelData = rcData[AUX1 + mcfg.rssi_aux_channel - 1];
-            // Range of rssiChannelData is [1000;2000]. rssi should be in [0;1023];
-            rssi = (uint16_t)((constrain(rssiChannelData - 1000, 0, 1000) / 1000.0f) * 1023.0f);
-        }
+        // Read rssi value
+        rssi = RSSI_getValue();
 
         // Failsafe routine
-        if (feature(FEATURE_FAILSAFE)) {
+        if (feature(FEATURE_FAILSAFE) || feature(FEATURE_FW_FAILSAFE_RTH)) {
             if (failsafeCnt > (5 * cfg.failsafe_delay) && f.ARMED) { // Stabilize, and set Throttle to specified level
                 for (i = 0; i < 3; i++)
                     rcData[i] = mcfg.midrc;      // after specified guard time after RC signal is lost (in 0.1sec)
                 rcData[THROTTLE] = cfg.failsafe_throttle;
-                if (failsafeCnt > 5 * (cfg.failsafe_delay + cfg.failsafe_off_delay)) {  // Turn OFF motors after specified Time (in 0.1sec)
+                buzzer(BUZZER_TX_LOST_ARMED);
+                if ((failsafeCnt > 5 * (cfg.failsafe_delay + cfg.failsafe_off_delay)) && !f.FW_FAILSAFE_RTH_ENABLE) {  // Turn OFF motors after specified Time (in 0.1sec)
                     mwDisarm();             // This will prevent the copter to automatically rearm if failsafe shuts it down and prevents
                     f.OK_TO_ARM = 0;        // to restart accidentely by just reconnect to the tx - you will have to switch off first to rearm
+                    buzzer(BUZZER_TX_LOST);
                 }
                 failsafeEvents++;
             }
             if (failsafeCnt > (5 * cfg.failsafe_delay) && !f.ARMED) {  // Turn off "Ok To arm to prevent the motors from spinning after repowering the RX with low throttle and aux to arm
                 mwDisarm();         // This will prevent the copter to automatically rearm if failsafe shuts it down and prevents
                 f.OK_TO_ARM = 0;    // to restart accidentely by just reconnect to the tx - you will have to switch off first to rearm
+                buzzer(BUZZER_TX_LOST);
             }
             failsafeCnt++;
         }
@@ -544,8 +561,13 @@ void loop(void)
         }
 
         if (cfg.activate[BOXARM] > 0) { // Disarming via ARM BOX
-            if (!rcOptions[BOXARM] && f.ARMED)
-                mwDisarm();
+            if (!rcOptions[BOXARM] && f.ARMED) {
+                if (mcfg.disarm_kill_switch) {
+                    mwDisarm();
+                } else if (isThrottleLow) {
+                	mwDisarm();
+                }
+            }
         }
 
         if (rcDelayCommand == 20) {
@@ -575,9 +597,9 @@ void loop(void)
                     } else {
                         AccInflightCalibrationArmed = !AccInflightCalibrationArmed;
                         if (AccInflightCalibrationArmed) {
-                            toggleBeep = 2;
+                            buzzer(BUZZER_ACC_CALIBRATION);
                         } else {
-                            toggleBeep = 3;
+                            buzzer(BUZZER_ACC_CALIBRATION_FAIL);
                         }
                     }
                 }
@@ -659,8 +681,14 @@ void loop(void)
                 errorAngleI[PITCH] = 0;
                 f.ANGLE_MODE = 1;
             }
+            if (feature(FEATURE_FW_FAILSAFE_RTH)) {
+                if ((failsafeCnt > 5 * cfg.failsafe_delay) && sensors(SENSOR_GPS)) {
+                    f.FW_FAILSAFE_RTH_ENABLE = 1;
+                }
+            }
         } else {
-            f.ANGLE_MODE = 0;        // failsave support
+            f.ANGLE_MODE = 0;   // failsafe support
+            f.FW_FAILSAFE_RTH_ENABLE = 0;
         }
 
         if (rcOptions[BOXHORIZON]) {
@@ -742,6 +770,8 @@ void loop(void)
                         GPSNavReset = 0;
                         GPS_set_next_wp(&GPS_home[LAT], &GPS_home[LON]);
                         nav_mode = NAV_MODE_WP;
+                        GPS_hold[ALT] = GPS_altitude;
+                        f.CLIMBOUT_FW = 1;
                     }
                 } else {
                     f.GPS_HOME_MODE = 0;
@@ -753,6 +783,8 @@ void loop(void)
                             GPS_hold[LON] = GPS_coord[LON];
                             GPS_set_next_wp(&GPS_hold[LAT], &GPS_hold[LON]);
                             nav_mode = NAV_MODE_POSHOLD;
+                            GPS_hold[ALT] = GPS_altitude;
+                            f.CLIMBOUT_FW = 0;
                         }
                     } else {
                         f.GPS_HOLD_MODE = 0;
@@ -760,9 +792,12 @@ void loop(void)
                         if (GPSNavReset == 0) {
                             GPSNavReset = 1;
                             GPS_reset_nav();
+                            f.CLIMBOUT_FW = 0;
                         }
                     }
                 }
+                // Beep for indication that GPS has found satellites and naze32 is ready to fly
+                buzzer(BUZZER_READY_BEEP);
             } else {
                 f.GPS_HOME_MODE = 0;
                 f.GPS_HOLD_MODE = 0;
@@ -770,14 +805,38 @@ void loop(void)
             }
         }
 
-        if (rcOptions[BOXPASSTHRU]) {
+        if (rcOptions[BOXPASSTHRU] && !f.FW_FAILSAFE_RTH_ENABLE) {
             f.PASSTHRU_MODE = 1;
         } else {
             f.PASSTHRU_MODE = 0;
         }
 
-        if (mcfg.mixerConfiguration == MULTITYPE_FLYING_WING || mcfg.mixerConfiguration == MULTITYPE_AIRPLANE) {
+        if (mcfg.mixerConfiguration == MULTITYPE_FLYING_WING || mcfg.mixerConfiguration == MULTITYPE_AIRPLANE || mcfg.mixerConfiguration == MULTITYPE_CUSTOM_PLANE) {
             f.HEADFREE_MODE = 0;
+            if (feature(FEATURE_FAILSAFE) && failsafeCnt > (6 * cfg.failsafe_delay)) {
+                f.PASSTHRU_MODE = 0;
+                f.ANGLE_MODE = 1;
+                for (i = 0; i < 3; i++) 
+                    rcData[i] = mcfg.midrc;
+                rcData[THROTTLE] = cfg.failsafe_throttle;
+                // No GPS?  Force a soft left turn.
+                if (!f.GPS_FIX && GPS_numSat <= 5) {
+                    f.FW_FAILSAFE_RTH_ENABLE = 0;
+                    rcData[ROLL] = mcfg.midrc - 50;
+        		}
+            }
+        }
+        // When armed and motors aren't spinning. Make warning beeps so that accidentally won't lose fingers...
+        // Also disarm board after 5 sec so users without buzzer won't lose fingers.
+        if (feature(FEATURE_MOTOR_STOP) && f.ARMED && !f.FIXED_WING) {
+            if (isThrottleLow) {
+                if (disarmTime == 0)
+                    disarmTime = millis() + 1000 * mcfg.auto_disarm_board;
+                else if (disarmTime < millis() && mcfg.auto_disarm_board != 0)
+                    mwDisarm();
+                buzzer(BUZZER_ARMED);
+            } else if (disarmTime != 0)
+                disarmTime = 0;
         }
     } else {                    // not in rc loop
         static int taskOrder = 0;    // never call all function in the same loop, to avoid high delay spikes
@@ -883,7 +942,7 @@ void loop(void)
                     // handle fixedwing-related althold. UNTESTED! and probably wrong
                     // most likely need to check changes on pitch channel and 'reset' althold similar to
                     // how throttle does it on multirotor
-                    rcCommand[PITCH] += BaroPID * mcfg.fixedwing_althold_dir;
+                    rcCommand[PITCH] += BaroPID * mcfg.fw_althold_dir;
                 }
             }
         }
@@ -897,6 +956,7 @@ void loop(void)
             if ((f.GPS_HOME_MODE || f.GPS_HOLD_MODE) && f.GPS_FIX_HOME) {
                 float sin_yaw_y = sinf(heading * 0.0174532925f);
                 float cos_yaw_x = cosf(heading * 0.0174532925f);
+                if (!f.FIXED_WING) {
                 if (cfg.nav_slew_rate) {
                     nav_rated[LON] += constrain(wrap_18000(nav[LON] - nav_rated[LON]), -cfg.nav_slew_rate, cfg.nav_slew_rate); // TODO check this on uint8
                     nav_rated[LAT] += constrain(wrap_18000(nav[LAT] - nav_rated[LAT]), -cfg.nav_slew_rate, cfg.nav_slew_rate);
@@ -906,6 +966,11 @@ void loop(void)
                     GPS_angle[ROLL] = (nav[LON] * cos_yaw_x - nav[LAT] * sin_yaw_y) / 10;
                     GPS_angle[PITCH] = (nav[LON] * sin_yaw_y + nav[LAT] * cos_yaw_x) / 10;
                 }
+                } else fw_nav();
+            } else {
+            	GPS_angle[ROLL] = 0;
+            	GPS_angle[PITCH] = 0;
+            	GPS_angle[YAW] = 0;
             }
         }
 

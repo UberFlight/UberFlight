@@ -3,10 +3,11 @@
 /* for VBAT monitoring frequency */
 #define VBATFREQ 6        // to read battery voltage - nth number of loop iterations#define BARO_TAB_SIZE_MAX   48
 
-#define  VERSION  230
+#define  VERSION  231
 
 #define LAT  0
 #define LON  1
+#define ALT  2
 
 #define RC_CHANS    (18)
 
@@ -43,8 +44,10 @@ typedef enum MultiType {
     MULTITYPE_PPM_TO_SERVO = 19,    // PPM -> servo relay 
     MULTITYPE_DUALCOPTER = 20,
     MULTITYPE_SINGLECOPTER = 21,
-    MULTITYPE_CUSTOM = 22,          // no current GUI displays this
-    MULTITYPE_LAST = 23
+    MULTITYPE_ATAIL4 = 22,
+    MULTITYPE_CUSTOM = 23,          // no current GUI displays this
+    MULTITYPE_CUSTOM_PLANE = 24,
+    MULTITYPE_LAST = 25
 } MultiType;
 
 typedef enum GimbalFlags {
@@ -52,6 +55,16 @@ typedef enum GimbalFlags {
     GIMBAL_MIXTILT = 1 << 1,
     GIMBAL_FORWARDAUX = 1 << 2,
 } GimbalFlags;
+
+typedef enum FlapsType {
+    FLAPS_DISABLED = 0,
+    FLAPS_ENABLED,
+    FLAPERONS_ENABLED,
+    FLAPERONS_INVERTED_ENABLED,
+    FLAPS_FLAPERONS_ENVABLED,
+    FLAPS_FLAPERONS_INVERTED_ENABLED,
+    FLAPS_TYPE_MAX = FLAPS_FLAPERONS_INVERTED_ENABLED
+} FlapsType;
 
 /*********** RC alias *****************/
 enum {
@@ -101,6 +114,9 @@ enum {
     BOXGOV,
     BOXOSD,
     BOXTELEMETRY,
+    BOXSERVO1,
+    BOXSERVO2,
+    BOXSERVO3,
     CHECKBOXITEMS
 };
 
@@ -137,7 +153,52 @@ typedef struct servoParam_t {
     int16_t max;                            // servo max
     int16_t middle;                         // servo middle
     int8_t rate;                            // range [-100;+100] ; can be used to ajust a rate 0-100% and a direction
+    uint16_t direction;                     // the direction of servo movement for each input channel of the servo mixer, bit set=inverted
 } servoParam_t;
+
+typedef struct {
+    float kP;
+    float kI;
+    float kD;
+    float Imax;
+} PID_PARAM;
+
+enum {
+    INPUT_ROLL = 0,
+    INPUT_PITCH,
+    INPUT_YAW,
+    INPUT_THROTTLE,
+    INPUT_AUX1,
+    INPUT_AUX2,
+    INPUT_AUX3,
+    INPUT_AUX4,
+    INPUT_RC_ROLL,
+    INPUT_RC_PITCH,
+    INPUT_RC_YAW,
+    INPUT_RC_THROTTLE,
+    INPUT_ITEMS
+};
+
+typedef struct servoMixer_t {
+    uint8_t targetChannel;                  // servo that receives the output of the rule
+    uint8_t fromChannel;                    // input channel for this rule
+    int8_t rate;                            // range [-100;+100] ; can be used to ajust a rate 0-100% and a direction
+    uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
+    int8_t min;                             // lower bound of rule range [0;100]% of servo max-min
+    int8_t max;                             // lower bound of rule range [0;100]% of servo max-min
+    uint8_t box;                            // active rule if box is enabled, range [0;3], 0=no box, 1=BOXSERVO1, 2=BOXSERVO2, 3=BOXSERVO3
+} servoMixer_t;
+
+// Custom mixer configuration
+typedef struct mixerRules_t {
+    uint8_t numberRules;
+    const servoMixer_t *rule;
+} mixerRules_t;
+
+#define MAX_SERVO_RULES (2 * MAX_SERVOS)
+#define MAX_SERVOS      8
+#define MAX_SERVO_SPEED UINT8_MAX
+#define MAX_SERVO_BOXES 3
 
 enum {
     ALIGN_GYRO = 0,
@@ -191,7 +252,7 @@ typedef struct config_t {
     uint8_t throttle_correction_value;      // the correction that will be applied at throttle_correction_angle.
 
     // Servo-related stuff
-    servoParam_t servoConf[8];              // servo configuration
+    servoParam_t servoConf[MAX_SERVOS];     // servo configuration
 
     // Failsafe related configuration
     uint8_t failsafe_delay;                 // Guard time for failsafe activation after signal lost. 1 step = 0.1sec - 1sec in example (10)
@@ -214,6 +275,21 @@ typedef struct config_t {
     uint16_t nav_speed_min;                 // cm/sec
     uint16_t nav_speed_max;                 // cm/sec
     uint16_t ap_mode;                       // Temporarily Disables GPS_HOLD_MODE to be able to make it possible to adjust the Hold-position when moving the sticks, creating a deadspan for GPS
+
+    float fw_roll_throw;
+    float fw_pitch_throw;
+    uint8_t fw_vector_trust;
+    uint8_t fw_flaperons_invert;
+    int16_t fw_gps_maxcorr;                    // Degrees banking Allowed by GPS.
+    int16_t fw_gps_rudder;                     // Maximum Rudder
+    int16_t fw_gps_maxclimb;                   // Degrees climbing . To much can stall the plane.
+    int16_t fw_gps_maxdive;                    // Degrees Diving . To much can overspeed the plane.
+    uint16_t fw_climb_throttle;                // Max allowed throttle in GPS modes.
+    uint16_t fw_cruise_throttle;               // Throttle to set for cruisespeed.
+    uint16_t fw_idle_throttle;                 // Lowest throttleValue during Descend
+    uint16_t fw_scaler_throttle;               // Adjust to Match Power/Weight ratio of your model
+    float fw_roll_comp;
+
 } config_t;
 
 // System-wide
@@ -227,6 +303,7 @@ typedef struct master_t {
     uint16_t looptime;                      // imu loop time in us
     uint8_t emf_avoidance;                  // change pll settings to avoid noise in the uhf band
     motorMixer_t customMixer[MAX_MOTORS];   // custom mixtable
+    servoMixer_t customServoMixer[MAX_SERVO_RULES]; // custom servo mixtable
 
     // motor/esc/servo related stuff
     uint16_t minthrottle;                   // Set the minimum throttle command sent to the ESC (Electronic Speed Controller). This is the minimum value that allow motors to run at a idle speed.
@@ -238,6 +315,7 @@ typedef struct master_t {
     uint16_t deadband3d_throttle;           // default throttle deadband from MIDRC
     uint16_t motor_pwm_rate;                // The update rate of motor outputs (50-498Hz)
     uint16_t servo_pwm_rate;                // The update rate of servo outputs (50-498Hz)
+    uint8_t pwm_filter;                     // Hardware filter for incoming PWM pulses (larger = more filtering)
 
     // global sensor-related stuff
     sensor_align_e gyro_align;              // gyro alignment
@@ -248,6 +326,7 @@ typedef struct master_t {
     int16_t board_align_yaw;                // board alignment correction in yaw (deg)
     int8_t yaw_control_direction;           // change control direction of yaw (inverted, normal)
     uint8_t acc_hardware;                   // Which acc hardware to use on boards with more than one device
+    uint8_t mag_hardware;                   // Which mag hardware to use
     uint16_t gyro_lpf;                      // gyro LPF setting - values are driver specific, in case of invalid number, a reasonable default ~30-40HZ is chosen.
     uint16_t gyro_cmpf_factor;              // Set the Gyro Weight for Gyro/Acc complementary filter. Increasing this value would reduce and delay Acc influence on the output of the filter.
     uint16_t gyro_cmpfm_factor;             // Set the Gyro Weight for Gyro/Magnetometer complementary filter. Increasing this value would reduce and delay Magnetometer influence on the output of the filter
@@ -256,30 +335,41 @@ typedef struct master_t {
     int16_t accZero[3];
     int16_t magZero[3];
 
+    // Safety features
+    uint8_t auto_disarm_board;              // Disarm board when motors not spinning at armed enabled (0 = disabled, 1 - 60 seconds when to automatically disarm)
+
     // Battery/ADC stuff
     uint16_t currentscale;                  // scale the current sensor output voltage to milliamps. Value in 1/10th mV/A
     uint16_t currentoffset;                 // offset of the current sensor in millivolt steps
     uint8_t multiwiicurrentoutput;          // if set to 1 output the amperage in milliamp steps instead of 0.01A steps via msp
     uint8_t vbatscale;                      // adjust this to match battery voltage to reported value
     uint8_t vbatmaxcellvoltage;             // maximum voltage per cell, used for auto-detecting battery voltage in 0.1V units, default is 43 (4.3V)
-    uint8_t vbatmincellvoltage;             // minimum voltage per cell, this triggers battery out alarms, in 0.1V units, default is 33 (3.3V)
-    uint8_t power_adc_channel;              // which channel is used for current sensor. Right now, only 2 places are supported: RC_CH2 (unused when in CPPM mode, = 1), RC_CH8 (last channel in PWM mode, = 9)
+    uint8_t vbatmincellvoltage;             // minimum voltage per cell, this triggers FASTER battery out alarm, in 0.1V units, default is 33 (3.3V)
+    uint8_t vbatwarningcellvoltage;         // minimum voltage per cell, this triggers SLOWER battery out alarm, in 0.1V units, default is 35 (3.5V)
+    uint8_t power_adc_channel;              // which channel is used for current sensor. Right now, only 3 places are supported: RC_CH2 (unused when in CPPM mode, = 1), RC_CH8 (last channel in PWM mode, = 9), ADC_EXTERNAL_PAD (Rev5 only, = 5), 0 to disable
 
     // Radio/ESC-related configuration
     uint8_t rcmap[8];                       // mapping of radio channels to internal RPYTA+ order
     uint8_t serialrx_type;                  // type of UART-based receiver (0 = spek 10, 1 = spek 11, 2 = sbus). Must be enabled by FEATURE_SERIALRX first.
+    uint8_t spektrum_sat_bind;              // Spektrum satellite bind. 0 - 10 (0 = disabled)
+    uint8_t spektrum_sat_on_flexport;       // Spektrum satellite on USART3 (flexport, available with rev5sp hardware)
     uint16_t midrc;                         // Some radios have not a neutral point centered on 1500. can be changed here
     uint16_t mincheck;                      // minimum rc end
     uint16_t maxcheck;                      // maximum rc end
     uint8_t retarded_arm;                   // allow disarsm/arm on throttle down + roll left/right
-    uint8_t flaps_speed;                    // airplane mode flaps, 0 = no flaps, > 0 = flap speed, larger = faster
-    int8_t fixedwing_althold_dir;           // +1 or -1 for pitch/althold gain. later check if need more than just sign
-
+    uint8_t disarm_kill_switch;             // AUX disarm independently of throttle value
+    int8_t fw_althold_dir;                  // +1 or -1 for pitch/althold gain. later check if need more than just sign
     uint8_t rssi_aux_channel;               // Read rssi from channel. 1+ = AUX1+, 0 to disable.
+    uint8_t rssi_adc_channel;               // Read analog-rssi from RC-filter (RSSI-PWM to RSSI-Analog), RC_CH2 (unused when in CPPM mode, = 1), RC_CH8 (last channel in PWM mode, = 9), ADC_EXTERNAL_PAD (Rev5 only, = 5), 0 to disable (disabled if rssi_aux_channel > 0 or rssi_adc_channel == power_adc_channel)
+    uint16_t rssi_adc_max;                  // max input voltage defined by RC-filter (is RSSI never 100% reduce the value) (1...4095)
+    uint16_t rssi_adc_offset;               // input offset defined by RC-filter (0...4095)
 
     // gps-related stuff
     uint8_t gps_type;                       // See GPSHardware enum.
     int8_t gps_baudrate;                    // See GPSBaudRates enum.
+    int8_t gps_ubx_sbas;                    // UBX SBAS setting.  -1 = disabled, 0 = AUTO, 1 = EGNOS, 2 = WAAS, 3 = MSAS, 4 = GAGAN (default = 0 = AUTO)
+    uint8_t gps_autobaud;                   // GPS autobaud setting. When enabled GPS baud rate will be lowered if there are timeout. 0 = disabled, 1 = enabled
+
 
     uint32_t serial_baudrate;
 
@@ -308,7 +398,7 @@ typedef struct core_t {
 //    uint8_t mpu6050_scale;                  // es/non-es variance between MPU6050 sensors, half my boards are mpu6000ES, need this to be dynamic. automatically set by mpu6050 driver.
     uint8_t numRCChannels;                  // number of rc channels as reported by current input driver
     bool useServo;                          // feature SERVO_TILT or wing/airplane mixers will enable this
-    uint8_t notorsNumber;
+    uint8_t numServos;                      // how many total hardware servos we have. used by mixer
 } core_t;
 
 typedef struct flags_t {
@@ -329,6 +419,9 @@ typedef struct flags_t {
     uint8_t CALIBRATE_MAG;
     uint8_t VARIO_MODE;
     uint8_t FIXED_WING;                     // set when in flying_wing or airplane mode. currently used by althold selection code
+    uint8_t MOTORS_STOPPED;
+    uint8_t FW_FAILSAFE_RTH_ENABLE;
+    uint8_t CLIMBOUT_FW;
 } flags_t;
 
 extern int16_t gyroZero[3];
@@ -374,7 +467,7 @@ extern uint16_t vbat;
 extern int16_t telemTemperature1;      // gyro sensor temperature
 extern int32_t amperage;               // amperage read by current sensor in 0.01A steps
 extern uint32_t mAhdrawn;              // milli ampere hours drawn from battery since start
-extern uint8_t toggleBeep;
+//extern uint8_t toggleBeep;
 
 #define PITCH_LOOKUP_LENGTH 7
 #define THROTTLE_LOOKUP_LENGTH 12
@@ -383,14 +476,14 @@ extern int16_t lookupThrottleRC[THROTTLE_LOOKUP_LENGTH];   // lookup table for e
 
 // GPS stuff
 extern int32_t GPS_coord[2];
-extern int32_t GPS_home[2];
-extern int32_t GPS_hold[2];
+extern int32_t  GPS_home[3];
+extern int32_t  GPS_hold[3];
 extern uint8_t GPS_numSat;
 extern uint16_t GPS_distanceToHome;                          // distance to home or hold point in meters
 extern int16_t GPS_directionToHome;                         // direction to home or hol point in degrees
 extern uint16_t GPS_altitude, GPS_speed;                      // altitude in 0.1m and speed in 0.1m/s
 extern uint8_t GPS_update;                                  // it's a binary toogle to distinct a GPS position update
-extern int16_t GPS_angle[2];                                // it's the angles that must be applied for GPS correction
+extern int16_t  GPS_angle[3];                                // it's the angles that must be applied for GPS correction
 extern uint16_t GPS_ground_course;                           // degrees*10
 extern int16_t nav[2];
 extern int8_t nav_mode;                                    // Navigation mode
@@ -431,11 +524,13 @@ void Gyro_getADC(void);
 bool Mag_update(void);
 void Sonar_init(void);
 void Sonar_update(void);
+uint16_t RSSI_getValue(void);
 
 // Output
 void mixerInit(void);
 void mixerResetMotors(void);
 void mixerLoadMix(int index);
+void servoMixerLoadMix(int index);
 void writeServos(void);
 void writeMotors(void);
 void writeAllMotors(int16_t mc);
@@ -485,7 +580,7 @@ void buzzer(uint8_t warn_vbat);
 void systemBeep(bool onoff);
 
 // cli
-void cliProcess();
+void cliProcess(void);
 
 // gps
 void gpsInit(USART_TypeDef *USARTx, uint8_t baudrate);
@@ -496,4 +591,5 @@ void GPS_reset_home_position(void);
 void GPS_reset_nav(void);
 void GPS_set_next_wp(int32_t* lat, int32_t* lon);
 int32_t wrap_18000(int32_t error);
+void fw_nav(void);
 

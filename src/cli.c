@@ -18,6 +18,7 @@ static void cliMotor(char *cmdline);
 static void cliProfile(char *cmdline);
 static void cliSave(char *cmdline);
 static void cliSet(char *cmdline);
+static void cliServoMix(char *cmdline);
 static void cliStatus(char *cmdline);
 static void cliVersion(char *cmdline);
 
@@ -56,7 +57,7 @@ static const char * const featureNames[] = {
     "PPM", "VBAT", "INFLIGHT_ACC_CAL", "SERIALRX", "MOTOR_STOP",
     "SERVO_TILT", "SOFTSERIAL", "LED_RING", "GPS",
     "FAILSAFE", "SONAR", "TELEMETRY", "POWERMETER", "VARIO", "3D",
-    "I2C", "AF", NULL
+    "I2C", "AF", "FW_FAILSAFE_RTH", NULL
 };
 
 // sync this with AvailableSensors enum from board.h
@@ -90,6 +91,7 @@ const clicmd_t cmdTable[] = {
     { "profile", "index (0 to 2)", cliProfile },
     { "save", "save and reboot", cliSave },
     { "set", "name=value or blank or * for list", cliSet },
+    { "smix", "design custom servo mixer", cliServoMix },
     { "status", "show system status", cliStatus },
     { "version", "", cliVersion },
 };
@@ -127,9 +129,10 @@ const clivalue_t valueTable[] = {
     { "deadband3d_throttle", VAR_UINT16, &mcfg.deadband3d_throttle, 0, 2000 },
     { "motor_pwm_rate", VAR_UINT16, &mcfg.motor_pwm_rate, 50, 32000 },
     { "servo_pwm_rate", VAR_UINT16, &mcfg.servo_pwm_rate, 50, 498 },
+    { "pwm_filter", VAR_UINT8, &mcfg.pwm_filter, 0, 15 },
     { "retarded_arm", VAR_UINT8, &mcfg.retarded_arm, 0, 1 },
-    { "flaps_speed", VAR_UINT8, &mcfg.flaps_speed, 0, 100 },
-    { "fixedwing_althold_dir", VAR_INT8, &mcfg.fixedwing_althold_dir, -1, 1 },
+    { "disarm_kill_switch", VAR_UINT8, &mcfg.disarm_kill_switch, 0, 1 },
+    { "fw_althold_dir", VAR_INT8, &mcfg.fw_althold_dir, -1, 1 },
     { "reboot_character", VAR_UINT8, &mcfg.reboot_character, 48, 126 },
     { "serial_baudrate", VAR_UINT32, &mcfg.serial_baudrate, 1200, 115200 },
     { "softserial_baudrate", VAR_UINT32, &mcfg.softserial_baudrate, 1200, 19200 },
@@ -137,13 +140,19 @@ const clivalue_t valueTable[] = {
     { "softserial_2_inverted", VAR_UINT8, &mcfg.softserial_2_inverted, 0, 1 },
     { "gps_type", VAR_UINT8, &mcfg.gps_type, 0, GPS_HARDWARE_MAX },
     { "gps_baudrate", VAR_INT8, &mcfg.gps_baudrate, 0, GPS_BAUD_MAX },
+    { "gps_ubx_sbas", VAR_INT8, &mcfg.gps_ubx_sbas, -1, 4 },
+    { "gps_autobaud", VAR_UINT8, &mcfg.gps_autobaud, 0, 1 },
     { "serialrx_type", VAR_UINT8, &mcfg.serialrx_type, 0, SERIALRX_PROVIDER_MAX },
     { "telemetry_provider", VAR_UINT8, &mcfg.telemetry_provider, 0, TELEMETRY_PROVIDER_MAX },
     { "telemetry_port", VAR_UINT8, &mcfg.telemetry_port, 0, TELEMETRY_PORT_MAX },
     { "telemetry_switch", VAR_UINT8, &mcfg.telemetry_switch, 0, 1 },
     { "vbatscale", VAR_UINT8, &mcfg.vbatscale, 10, 200 },
+    { "currentscale", VAR_UINT16, &mcfg.currentscale, 1, 10000 },
+    { "currentoffset", VAR_UINT16, &mcfg.currentoffset, 0, 1650 },
+    { "multiwiicurrentoutput", VAR_UINT8, &mcfg.multiwiicurrentoutput, 0, 1 },
     { "vbatmaxcellvoltage", VAR_UINT8, &mcfg.vbatmaxcellvoltage, 10, 50 },
     { "vbatmincellvoltage", VAR_UINT8, &mcfg.vbatmincellvoltage, 10, 50 },
+    { "vbatwarningcellvoltage", VAR_UINT8, &mcfg.vbatwarningcellvoltage, 10, 50 },
     { "power_adc_channel", VAR_UINT8, &mcfg.power_adc_channel, 0, 9 },
     { "align_gyro", VAR_UINT8, &mcfg.gyro_align, 0, 8 },
     { "align_acc", VAR_UINT8, &mcfg.acc_align, 0, 8 },
@@ -152,7 +161,8 @@ const clivalue_t valueTable[] = {
     { "align_board_pitch", VAR_INT16, &mcfg.board_align_pitch, -180, 360 },
     { "align_board_yaw", VAR_INT16, &mcfg.board_align_yaw, -180, 360 },
     { "yaw_control_direction", VAR_INT8, &mcfg.yaw_control_direction, -1, 1 },
-    { "acc_hardware", VAR_UINT8, &mcfg.acc_hardware, 0, 5 },
+    { "acc_hardware", VAR_UINT8, &mcfg.acc_hardware, 0, ACC_NONE },
+    { "mag_hardware", VAR_UINT8, &mcfg.mag_hardware, 0, MAG_NONE },
     { "max_angle_inclination", VAR_UINT16, &mcfg.max_angle_inclination, 100, 900 },
     { "moron_threshold", VAR_UINT8, &mcfg.moron_threshold, 0, 128 },
     { "gyro_lpf", VAR_UINT16, &mcfg.gyro_lpf, 0, 256 },
@@ -177,9 +187,16 @@ const clivalue_t valueTable[] = {
     { "failsafe_off_delay", VAR_UINT8, &cfg.failsafe_off_delay, 0, 200 },
     { "failsafe_throttle", VAR_UINT16, &cfg.failsafe_throttle, 1000, 2000 },
     { "failsafe_detect_threshold", VAR_UINT16, &cfg.failsafe_detect_threshold, 100, 2000 },
+    { "auto_disarm_board", VAR_UINT8, &mcfg.auto_disarm_board, 0, 60 },
     { "rssi_aux_channel", VAR_INT8, &mcfg.rssi_aux_channel, 0, 4 },
+    { "rssi_adc_channel", VAR_INT8, &mcfg.rssi_adc_channel, 0, 9 },
+    { "rssi_adc_max", VAR_INT16, &mcfg.rssi_adc_max, 1, 4095 },
+    { "rssi_adc_offset", VAR_INT16, &mcfg.rssi_adc_offset, 0, 4095 },
     { "yaw_direction", VAR_INT8, &cfg.yaw_direction, -1, 1 },
     { "tri_unarmed_servo", VAR_INT8, &cfg.tri_unarmed_servo, 0, 1 },
+    { "fw_roll_throw", VAR_FLOAT, &cfg.fw_roll_throw, 0, 1 },
+    { "fw_pitch_throw", VAR_FLOAT, &cfg.fw_pitch_throw, 0, 1 },
+    { "fw_vector_trust", VAR_UINT8, &cfg.fw_vector_trust, 0, 1},
     { "gimbal_flags", VAR_UINT8, &cfg.gimbal_flags, 0, 255},
     { "acc_lpf_factor", VAR_UINT8, &cfg.acc_lpf_factor, 0, 250 },
     { "accxy_deadband", VAR_UINT8, &cfg.accxy_deadband, 0, 100 },
@@ -226,6 +243,16 @@ const clivalue_t valueTable[] = {
     { "p_vel", VAR_UINT8, &cfg.P8[PIDVEL], 0, 200 },
     { "i_vel", VAR_UINT8, &cfg.I8[PIDVEL], 0, 200 },
     { "d_vel", VAR_UINT8, &cfg.D8[PIDVEL], 0, 200 },
+    { "fw_gps_maxcorr", VAR_INT16, &cfg.fw_gps_maxcorr, -45, 45 },
+    { "fw_gps_rudder", VAR_INT16, &cfg.fw_gps_rudder,  -45, 45 },
+    { "fw_gps_maxclimb", VAR_INT16, &cfg.fw_gps_maxclimb,  -45, 45 },
+    { "fw_gps_maxdive", VAR_INT16, &cfg.fw_gps_maxdive,  -45, 45 },
+    { "fw_climb_throttle", VAR_UINT16, &cfg.fw_climb_throttle, 1000, 2000 },
+    { "fw_cruise_throttle", VAR_UINT16, &cfg.fw_cruise_throttle, 1000, 2000 },
+    { "fw_idle_throttle", VAR_UINT16, &cfg.fw_idle_throttle, 1000, 2000 },
+    { "fw_scaler_throttle", VAR_UINT16, &cfg.fw_scaler_throttle, 0, 15 },
+    { "fw_roll_comp", VAR_FLOAT, &cfg.fw_roll_comp, 0, 2 },
+    { "fw_rth_alt", VAR_UINT8, &cfg.D8[PIDPOSR], 0, 200 },
 };
 
 #define VALUE_COUNT (sizeof(valueTable) / sizeof(clivalue_t))
@@ -546,6 +573,133 @@ static void cliCMix(char *cmdline)
     }
 }
 
+static void cliServoMix(char *cmdline)
+{
+    int i;
+    uint8_t len;
+    char *ptr;
+    int args[8], check = 0;
+    len = strlen(cmdline);
+
+    if (len == 0) {
+        printf("Custom servo mixer: \r\nchange mixer: smix rule\ttarget_channel\tinput_channel\trate\tspeed\t\tmin\tmax\tbox\r\n");
+        printf("reset mixer: smix reset\r\nload mixer: smix load\r\nchange direction of channel: smix direction\r\n");
+        for (i = 0; i < MAX_SERVO_RULES; i++) {
+            if (mcfg.customServoMixer[i].rate == 0)
+                break;
+            printf("#%d:\t", i + 1);
+            printf("%d\t", mcfg.customServoMixer[i].targetChannel + 1);
+            printf("%d\t", mcfg.customServoMixer[i].fromChannel + 1);
+            printf("%d\t", mcfg.customServoMixer[i].rate);
+            printf("%d\t", mcfg.customServoMixer[i].speed);
+            printf("%d\t", mcfg.customServoMixer[i].min);
+            printf("%d\t", mcfg.customServoMixer[i].max);
+            printf("%d\r\n", mcfg.customServoMixer[i].box);
+        }
+        printf("\r\n");
+        return;
+    } else if (strncasecmp(cmdline, "reset", 5) == 0) {
+        // erase custom mixer
+        memset(mcfg.customServoMixer, 0, sizeof(mcfg.customServoMixer));
+        for (i = 0; i < MAX_SERVOS; i++)
+            cfg.servoConf[i].direction = 0;
+    } else if (strncasecmp(cmdline, "load", 4) == 0) {
+        ptr = strchr(cmdline, ' ');
+        if (ptr) {
+            len = strlen(++ptr);
+            for (i = 0; ; i++) {
+                if (mixerNames[i] == NULL) {
+                    printf("Invalid mixer type...\r\n");
+                    break;
+                }
+                if (strncasecmp(ptr, mixerNames[i], len) == 0) {
+                    servoMixerLoadMix(i);
+                    printf("Loaded %s mix...\r\n", mixerNames[i]);
+                    cliServoMix("");
+                    break;
+                }
+            }
+        }
+    } else if (strncasecmp(cmdline, "direction", 9) == 0) {
+        enum {SERVO = 0, INPUT, DIRECTION, ARGS_COUNT};
+        int servoIndex, channel;
+        ptr = strchr(cmdline, ' ');
+
+        len = strlen(ptr);
+        if (len == 0) {
+            printf("change the direction a servo reacts to a input channel: \r\nservo input -1|1\r\n");
+            printf("s");
+            for (channel = 0; channel < INPUT_ITEMS; channel++)
+                printf("\ti%d",channel + 1);
+            printf("\r\n");
+
+            for (servoIndex = 0; servoIndex < MAX_SERVOS; servoIndex++) {
+                printf("%d", servoIndex + 1);
+                for (channel = 0; channel < INPUT_ITEMS; channel++)
+                    printf("\t%s  ", (cfg.servoConf[servoIndex].direction & (1 << channel)) ? "r" : "n");
+                printf("\r\n");
+            }
+            return;
+        }
+
+        ptr = strtok(ptr, " ");
+        while (ptr != NULL && check < ARGS_COUNT) {
+            args[check++] = atoi(ptr);
+            ptr = strtok(NULL, " ");
+        }
+        
+        if (ptr != NULL || check != ARGS_COUNT) {
+            printf("Wrong number of arguments, needs servo input direction\r\n");
+            return;
+        }
+        
+        if (args[SERVO] >= 1 && args[SERVO] <= MAX_SERVOS && args[INPUT] >= 1 && args[INPUT] <= INPUT_ITEMS && (args[DIRECTION] == -1 || args[DIRECTION] == 1)) {
+            args[SERVO] -= 1;
+            args[INPUT] -= 1;
+            if (args[DIRECTION] == -1)
+                cfg.servoConf[args[SERVO]].direction |= 1 << args[INPUT];
+            else
+                cfg.servoConf[args[SERVO]].direction &= ~(1 << args[INPUT]);
+        } else
+            printf("ERR: Wrong range for arguments\r\n");
+
+        cliServoMix("direction");
+    }
+    else {
+        enum {RULE = 0, TARGET, INPUT, RATE, SPEED, MIN, MAX, BOX, ARGS_COUNT};
+        ptr = strtok(cmdline, " ");
+        while (ptr != NULL && check < ARGS_COUNT) {
+            args[check++] = atoi(ptr);
+            ptr = strtok(NULL, " ");
+        }
+        
+        if (ptr != NULL || check != ARGS_COUNT) {
+            printf("ERR: Wrong number of arguments, needs rule target_channel input_channel rate speed min max box\r\n");
+            return;
+        }
+        
+        i = args[RULE] - 1;
+        if (i >= 0 && i < MAX_SERVO_RULES &&
+            args[TARGET] > 0 && args[TARGET] <= MAX_SERVOS &&
+            args[INPUT] >= 1 && args[INPUT] <= INPUT_ITEMS &&
+            args[RATE] >= -100 && args[RATE] <= 100 &&
+            args[SPEED] >= 0 && args[SPEED] <= MAX_SERVO_SPEED &&
+            args[MIN] >= 0 && args[MIN] <= 100 &&
+            args[MAX] >= 0 && args[MAX] <= 100 && args[MIN] < args[MAX] &&
+            args[BOX] >= 0 && args[BOX] <= MAX_SERVO_BOXES) {
+                mcfg.customServoMixer[i].targetChannel = args[TARGET] - 1;
+                mcfg.customServoMixer[i].fromChannel = args[INPUT] - 1;
+                mcfg.customServoMixer[i].rate = args[RATE];
+                mcfg.customServoMixer[i].speed = args[SPEED];
+                mcfg.customServoMixer[i].min = args[MIN];
+                mcfg.customServoMixer[i].max = args[MAX];
+                mcfg.customServoMixer[i].box = args[BOX];
+                cliServoMix("");
+        } else
+            printf("ERR: Wrong range for arguments\r\n");
+    }
+}
+
 static void cliDefaults(char *c)
 {
     UNUSED(c);
@@ -559,12 +713,13 @@ static void cliDefaults(char *c)
 static void cliDump(char *cmdline)
 {
     UNUSED(cmdline);
-    int i;
+    int i, channel;
     char buf[16];
     float thr, roll, pitch, yaw;
     uint32_t mask;
     const clivalue_t *setval;
 
+    cliVersion(NULL);
     printf("Current Config: Copy everything below here...\r\n");
 
     // print out aux switches
@@ -599,6 +754,29 @@ static void cliDump(char *cmdline)
         printf("cmix %d 0 0 0 0\r\n", i + 1);
     }
 
+    // print custom servo mixer if exists
+    if (mcfg.customServoMixer[0].rate != 0) {
+        for (i = 0; i < MAX_SERVO_RULES; i++) {
+            if (mcfg.customServoMixer[i].rate == 0)
+                break;
+            printf("smix %d ", i + 1);
+            printf("%d ", mcfg.customServoMixer[i].targetChannel + 1);
+            printf("%d ", mcfg.customServoMixer[i].fromChannel + 1);
+            printf("%d ", mcfg.customServoMixer[i].rate);
+            printf("%d ", mcfg.customServoMixer[i].speed);
+            printf("%d ", mcfg.customServoMixer[i].min);
+            printf("%d ", mcfg.customServoMixer[i].max);
+            printf("%d\r\n", mcfg.customServoMixer[i].box);
+        }
+        printf("smix %d 0 0 0 0\r\n", i + 1);
+    }
+    
+    // print servo directions
+    for (i = 0; i < 8; i++)
+        for (channel = 0; channel < INPUT_ITEMS; channel++)
+            if (cfg.servoConf[i].direction & (1 << channel))
+                printf("smix direction %d %d -1\r\n",i + 1 ,channel + 1);
+    
     // print enabled features
     mask = featureMask();
     for (i = 0; ; i++) { // disable all feature first
@@ -771,6 +949,20 @@ static void cliMixer(char *cmdline)
         if (strncasecmp(cmdline, mixerNames[i], len) == 0) {
             mcfg.mixerConfiguration = i + 1;
             printf("Mixer set to %s\r\n", mixerNames[i]);
+
+            // Presets for planes. Not functional with current reset
+            // Really Ugly Hack
+            if (mcfg.mixerConfiguration == MULTITYPE_FLYING_WING || mcfg.mixerConfiguration == MULTITYPE_AIRPLANE) {
+                cfg.dynThrPID = 50;
+                cfg.rcExpo8 = 0;
+                cfg.P8[PIDALT] = 30;
+                cfg.I8[PIDALT] = 20;
+                cfg.D8[PIDALT] = 45;
+                cfg.D8[PIDPOSR] = 50; // RTH Alt
+                cfg.P8[PIDNAVR] = 30;
+                cfg.I8[PIDNAVR] = 20;
+                cfg.D8[PIDNAVR] = 45;
+            }
             break;
         }
     }
@@ -1021,7 +1213,7 @@ static void cliStatus(char *cmdline)
 static void cliVersion(char *cmdline)
 {
     UNUSED(cmdline);
-    cliPrintStr("Afro32 CLI version 2.2 " __DATE__ " / " __TIME__);
+    cliPrintStr("Afro32 CLI version 2.3 " __DATE__ " / " __TIME__);
 }
 
 void cliProcess()

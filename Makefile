@@ -199,6 +199,7 @@ MW_SRC	 = \
 		cli.c \
 		config.c \
 		gps.c \
+		fw_nav.c \
 		imu.c \
 		main.c \
 		mw.c \

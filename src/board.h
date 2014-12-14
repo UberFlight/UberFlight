@@ -89,6 +89,13 @@ typedef enum AccelSensors {
     ACC_NONE = 5
 } AccelSensors;
 
+typedef enum CompassSensors {
+    MAG_DEFAULT = 0,
+    MAG_HMC5883L = 1,
+    MAG_AK8975 = 2,
+    MAG_NONE = 3
+} CompassSensors;
+
 typedef enum {
     FEATURE_PPM = 1 << 0,
     FEATURE_VBAT = 1 << 1,
@@ -107,6 +114,7 @@ typedef enum {
     FEATURE_3D = 1 << 14,
     FEATURE_I2C = 1 << 15,
     FEATURE_AF = 1 << 16,
+    FEATURE_FW_FAILSAFE_RTH = 1 << 17,
 } AvailableFeatures;
 
 typedef enum {
@@ -219,6 +227,11 @@ typedef struct baro_t {
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
+
+
+//comon
+
+#define MOTOR_PWM_RATE 400
 
 ///////////////////////////////////////////////////////////////////////////////
 

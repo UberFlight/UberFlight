@@ -16,7 +16,7 @@ typedef struct drv_pwm_config_t {
     bool useAf;
     bool useCamStab;
     bool useTri;
-    uint8_t notorsNumber;
+//    uint8_t notorsNumber;
     bool airplane;       // fixed wing hardware config, lots of servos etc
     uint8_t adcChannel;  // steal one RC input for current sensor
     uint16_t motorPwmRate;
