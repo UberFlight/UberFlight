@@ -134,7 +134,7 @@ bool sensorsAutodetect(void)
     } else {
 #if defined(NAZEPRO)
         if (!hmc5983DetectSpi(&mag))
-            sensorsClear(SENSOR_MAG);
+        sensorsClear(SENSOR_MAG);
 #endif
     }
 

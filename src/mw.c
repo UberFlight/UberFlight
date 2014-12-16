@@ -9,7 +9,6 @@
 
 flags_t f;
 int16_t debug[4];
-uint8_t toggleBeep = 0;
 uint32_t currentTime = 0;
 uint32_t previousTime = 0;
 uint16_t cycleTime = 0;         // this is the number in micro second to achieve a full loop, it can differ a little and is taken into account in the PID loop
@@ -17,7 +16,7 @@ int16_t headFreeModeHold, magHold;
 
 uint16_t vbat;                  // battery voltage in 0.1V steps
 int32_t amperage;               // amperage read by current sensor in centiampere (1/100th A)
-uint32_t mAhdrawn;              // milliampere hours drawn from the battery since start
+int32_t mAhdrawn;               // milliampere hours drawn from the battery since start
 int16_t telemTemperature1;      // gyro sensor temperature
 
 int16_t failsafeCnt = 0;
@@ -49,7 +48,7 @@ uint16_t GPS_distanceToHome;        // distance to home point in meters
 int16_t GPS_directionToHome;        // direction to home or hol point in degrees
 uint16_t GPS_altitude, GPS_speed;   // altitude in 0.1m and speed in 0.1m/s
 uint8_t GPS_update = 0;             // it's a binary toogle to distinct a GPS position update
-int16_t GPS_angle[3] = { 0, 0 };    // it's the angles that must be applied for GPS correction
+int16_t GPS_angle[3] = { 0, 0, 0 }; // it's the angles that must be applied for GPS correction
 uint16_t GPS_ground_course = 0;     // degrees * 10
 int16_t nav[2];
 int16_t nav_rated[2];               // Adding a rate controller to the navigation to make it smoother
@@ -95,7 +94,6 @@ void annexCode(void)
     static uint32_t calibratedAccTime;
     int32_t tmp, tmp2;
     int32_t axis, prop1, prop2;
-    static uint8_t buzzerFreq;  // delay between buzzer ring
 
     // vbat shit
     static uint8_t vbatTimer = 0;
@@ -172,7 +170,7 @@ void annexCode(void)
 
             if (mcfg.power_adc_channel > 0) {
                 amperageRaw -= amperageRaw / 8;
-                amperageRaw += adcGetChannel(ADC_EXTERNAL2);
+                amperageRaw += adcGetChannel(ADC_EXTERNAL_CURRENT);
                 amperage = currentSensorToCentiamps(amperageRaw / 8);
                 mAhdrawnRaw += (amperage * vbatCycleTime) / 1000;
                 mAhdrawn = mAhdrawnRaw / (3600 * 100);
@@ -763,7 +761,7 @@ void loop(void)
         if (sensors(SENSOR_GPS)) {
             if (f.GPS_FIX && GPS_numSat >= 5) {
                 // if both GPS_HOME & GPS_HOLD are checked => GPS_HOME is the priority
-                if (rcOptions[BOXGPSHOME]) {
+                if (rcOptions[BOXGPSHOME] || f.FW_FAILSAFE_RTH_ENABLE ) {
                     if (!f.GPS_HOME_MODE) {
                         f.GPS_HOME_MODE = 1;
                         f.GPS_HOLD_MODE = 0;

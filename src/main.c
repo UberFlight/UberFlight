@@ -137,6 +137,7 @@ int main(void)
         pwm_params.useTri = mcfg.mixerConfiguration == MULTITYPE_TRI;
         pwm_params.motorPwmRate = mcfg.motor_pwm_rate;
         pwm_params.servoPwmRate = mcfg.servo_pwm_rate;
+        pwm_params.pwmFilter = mcfg.pwm_filter;
         pwm_params.idlePulse = PULSE_1MS;                  // standard PWM for brushless ESC (default, overridden below)
         if (feature(FEATURE_3D))
             pwm_params.idlePulse = mcfg.neutral3d;
@@ -159,6 +160,7 @@ int main(void)
 //        }
 
         pwmInit(&pwm_params);
+        core.numServos = pwm_params.numServos;
     }
 
     previousTime = micros();

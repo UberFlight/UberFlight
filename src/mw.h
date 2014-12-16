@@ -371,7 +371,7 @@ typedef struct master_t {
     uint8_t gps_autobaud;                   // GPS autobaud setting. When enabled GPS baud rate will be lowered if there are timeout. 0 = disabled, 1 = enabled
 
 
-    uint32_t serial_baudrate;
+    uint32_t serial_baudrate;               // primary serial (MSP) port baudrate
 
     uint32_t softserial_baudrate;             // shared by both soft serial ports
     uint8_t softserial_1_inverted;            // use inverted softserial input and output signals on port 1
@@ -463,11 +463,10 @@ extern int16_t motor[MAX_MOTORS];
 extern int16_t servo[MAX_SERVOS];
 extern int16_t rcData[RC_CHANS];
 extern uint16_t rssi;                  // range: [0;1023]
-extern uint16_t vbat;
+extern uint16_t vbat;                  // battery voltage in 0.1V steps
 extern int16_t telemTemperature1;      // gyro sensor temperature
 extern int32_t amperage;               // amperage read by current sensor in 0.01A steps
-extern uint32_t mAhdrawn;              // milli ampere hours drawn from battery since start
-//extern uint8_t toggleBeep;
+extern int32_t mAhdrawn;              // milli ampere hours drawn from battery since start
 
 #define PITCH_LOOKUP_LENGTH 7
 #define THROTTLE_LOOKUP_LENGTH 12
@@ -576,7 +575,6 @@ bool mspFrameComplete(void);
 void mspFrameRecieve(void);
 
 // buzzer
-void buzzer(uint8_t warn_vbat);
 void systemBeep(bool onoff);
 
 // cli

@@ -49,7 +49,7 @@ static const char * const mixerNames[] = {
     "FLYING_WING", "Y4", "HEX6X", "OCTOX8", "OCTOFLATP", "OCTOFLATX",
     "AIRPLANE", "HELI_120_CCPM", "HELI_90_DEG", "VTAIL4",
     "HEX6H", "PPM_TO_SERVO", "DUALCOPTER", "SINGLECOPTER",
-    "CUSTOM", NULL
+    "ATAIL4", "CUSTOM", "CUSTOMPLANE", NULL
 };
 
 // sync this with AvailableFeatures enum from board.h
@@ -65,6 +65,7 @@ static const char * const sensorNames[] = {
     "GYRO", "ACC", "BARO", "MAG", "SONAR", "GPS", "GPS+MAG", NULL
 };
 
+// sync this with AccelSensors enum from board.h
 static const char * const accNames[] = {
     "", "ADXL345", "MPU6050", "MMA845x", "BMA280", "None", NULL
 };
@@ -110,8 +111,8 @@ typedef struct {
     const char *name;
     const uint8_t type; // vartype_e
     void *ptr;
-    const int min;
-    const int max;
+    const int32_t min;
+    const int32_t max;
 } clivalue_t;
 
 const clivalue_t valueTable[] = {
@@ -265,8 +266,8 @@ typedef union {
 
 static void cliSetVar(const clivalue_t *var, const int_float_value_t value);
 static void cliPrintVar(const clivalue_t *var, uint32_t full);
-static void cliPrintStr(const char *str);
-static void cliPrint(uint8_t ch);
+static void cliPrint(const char *str);
+static void cliWrite(uint8_t ch);
 
 #ifndef HAVE_ITOA_FUNCTION
 
@@ -450,7 +451,7 @@ static char *ftoa(float x, char *floatString)
 
 static void cliPrompt(void)
 {
-    cliPrintStr("\r\n# ");
+    cliPrint("\r\n# ");
 }
 
 static int cliCompare(const void *a, const void *b)
@@ -495,7 +496,7 @@ static void cliCMix(char *cmdline)
     len = strlen(cmdline);
 
     if (len == 0) {
-        cliPrintStr("Custom mixer: \r\nMotor\tThr\tRoll\tPitch\tYaw\r\n");
+        cliPrint("Custom mixer: \r\nMotor\tThr\tRoll\tPitch\tYaw\r\n");
         for (i = 0; i < MAX_MOTORS; i++) {
             if (mcfg.customMixer[i].throttle == 0.0f)
                 break;
@@ -512,10 +513,10 @@ static void cliCMix(char *cmdline)
             mixsum[1] += mcfg.customMixer[i].pitch;
             mixsum[2] += mcfg.customMixer[i].yaw;
         }
-        cliPrintStr("Sanity check:\t");
+        cliPrint("Sanity check:\t");
         for (i = 0; i < 3; i++)
-            cliPrintStr(fabsf(mixsum[i]) > 0.01f ? "NG\t" : "OK\t");
-        cliPrintStr("\r\n");
+            cliPrint(fabsf(mixsum[i]) > 0.01f ? "NG\t" : "OK\t");
+        cliPrint("\r\n");
         return;
     } else if (strncasecmp(cmdline, "reset", 5) == 0) {
         // erase custom mixer
@@ -527,7 +528,7 @@ static void cliCMix(char *cmdline)
             len = strlen(++ptr);
             for (i = 0; ; i++) {
                 if (mixerNames[i] == NULL) {
-                    cliPrintStr("Invalid mixer type...\r\n");
+                    cliPrint("Invalid mixer type...\r\n");
                     break;
                 }
                 if (strncasecmp(ptr, mixerNames[i], len) == 0) {
@@ -563,7 +564,7 @@ static void cliCMix(char *cmdline)
                 check++;
             }
             if (check != 4) {
-                cliPrintStr("Wrong number of arguments, needs idx thr roll pitch yaw\r\n");
+                cliPrint("Wrong number of arguments, needs idx thr roll pitch yaw\r\n");
             } else {
                 cliCMix("");
             }
@@ -700,12 +701,12 @@ static void cliServoMix(char *cmdline)
     }
 }
 
-static void cliDefaults(char *c)
+static void cliDefaults(char *cmdline)
 {
-    UNUSED(c);
-    cliPrintStr("Resetting to defaults...\r\n");
+    UNUSED(cmdline);
+    cliPrint("Resetting to defaults...\r\n");
     checkFirstTime(true);
-    cliPrintStr("Rebooting...");
+    cliPrint("Rebooting...");
     delay(10);
     systemReset(false);
 }
@@ -713,7 +714,7 @@ static void cliDefaults(char *c)
 static void cliDump(char *cmdline)
 {
     UNUSED(cmdline);
-    int i, channel;
+    unsigned int i, channel;
     char buf[16];
     float thr, roll, pitch, yaw;
     uint32_t mask;
@@ -802,13 +803,13 @@ static void cliDump(char *cmdline)
         setval = &valueTable[i];
         printf("set %s = ", valueTable[i].name);
         cliPrintVar(setval, 0);
-        cliPrintStr("\r\n");
+        cliPrint("\r\n");
     }
 }
 
 static void cliExit(char *cmdline)
 {
-    cliPrintStr("\r\nLeaving CLI mode...\r\n");
+    cliPrint("\r\nLeaving CLI mode...\r\n");
     *cliBuffer = '\0';
     bufferIndex = 0;
     cliMode = 0;
@@ -828,22 +829,22 @@ static void cliFeature(char *cmdline)
     mask = featureMask();
 
     if (len == 0) {
-        cliPrintStr("Enabled features: ");
+        cliPrint("Enabled features: ");
         for (i = 0; ; i++) {
             if (featureNames[i] == NULL)
                 break;
             if (mask & (1 << i))
                 printf("%s ", featureNames[i]);
         }
-        cliPrintStr("\r\n");
+        cliPrint("\r\n");
     } else if (strncasecmp(cmdline, "list", len) == 0) {
-        cliPrintStr("Available features: ");
+        cliPrint("Available features: ");
         for (i = 0; ; i++) {
             if (featureNames[i] == NULL)
                 break;
             printf("%s ", featureNames[i]);
         }
-        cliPrintStr("\r\n");
+        cliPrint("\r\n");
         return;
     } else {
         bool remove = false;
@@ -856,16 +857,16 @@ static void cliFeature(char *cmdline)
 
         for (i = 0; ; i++) {
             if (featureNames[i] == NULL) {
-                cliPrintStr("Invalid feature name...\r\n");
+                cliPrint("Invalid feature name...\r\n");
                 break;
             }
             if (strncasecmp(cmdline, featureNames[i], len) == 0) {
                 if (remove) {
                     featureClear(1 << i);
-                    cliPrintStr("Disabled ");
+                    cliPrint("Disabled ");
                 } else {
                     featureSet(1 << i);
-                    cliPrintStr("Enabled ");
+                    cliPrint("Enabled ");
                 }
                 printf("%s\r\n", featureNames[i]);
                 break;
@@ -878,9 +879,9 @@ static void cliGpsPassthrough(char *cmdline)
 {
     UNUSED(cmdline);
     if (gpsSetPassthrough() == -1)
-        cliPrintStr("Error: Enable and plug in GPS first\r\n");
+        cliPrint("Error: Enable and plug in GPS first\r\n");
     else
-        cliPrintStr("Enabling GPS passthrough...\r\n");
+        cliPrint("Enabling GPS passthrough...\r\n");
 }
 
 static void cliHelp(char *cmdline)
@@ -888,7 +889,7 @@ static void cliHelp(char *cmdline)
     UNUSED(cmdline);
     uint32_t i = 0;
 
-    cliPrintStr("Available commands:\r\n");
+    cliPrint("Available commands:\r\n");
     for (i = 0; i < CMD_COUNT; i++)
         printf("%s\t%s\r\n", cmdTable[i].name, cmdTable[i].param);
 }
@@ -908,12 +909,12 @@ static void cliMap(char *cmdline)
         for (i = 0; i < 8; i++) {
             if (strchr(rcChannelLetters, cmdline[i]) && !strchr(cmdline + i + 1, cmdline[i]))
                 continue;
-            cliPrintStr("Must be any order of AETR1234\r\n");
+            cliPrint("Must be any order of AETR1234\r\n");
             return;
         }
         parseRcChannels(cmdline);
     }
-    cliPrintStr("Current assignment: ");
+    cliPrint("Current assignment: ");
     for (i = 0; i < 8; i++)
         out[mcfg.rcmap[i]] = rcChannelLetters[i];
     out[i] = '\0';
@@ -931,19 +932,19 @@ static void cliMixer(char *cmdline)
         printf("Current mixer: %s\r\n", mixerNames[mcfg.mixerConfiguration - 1]);
         return;
     } else if (strncasecmp(cmdline, "list", len) == 0) {
-        cliPrintStr("Available mixers: ");
+        cliPrint("Available mixers: ");
         for (i = 0; ; i++) {
             if (mixerNames[i] == NULL)
                 break;
             printf("%s ", mixerNames[i]);
         }
-        cliPrintStr("\r\n");
+        cliPrint("\r\n");
         return;
     }
 
     for (i = 0; ; i++) {
         if (mixerNames[i] == NULL) {
-            cliPrintStr("Invalid mixer type...\r\n");
+            cliPrint("Invalid mixer type...\r\n");
             break;
         }
         if (strncasecmp(cmdline, mixerNames[i], len) == 0) {
@@ -1036,37 +1037,27 @@ static void cliProfile(char *cmdline)
 static void cliSave(char *cmdline)
 {
     UNUSED(cmdline);
-    cliPrintStr("Saving...");
+    cliPrint("Saving...");
     writeConfig(0, true);
-    cliPrintStr("\r\nRebooting...");
+    cliPrint("\r\nRebooting...");
     delay(10);
     systemReset(false);
 }
 
-//static void cliPrintStr(const char *str)
-//{
-//    usbPrintStr(str);
-//}
-//
-//static void cliPrint(uint8_t ch)
-//{
-//    usbPrint(ch);
-//}
-
-static void cliPrintStr(const char *str)
+static void cliPrint(const char *str)
 {
     while (*str)
         serialWrite(core.mspPort, *(str++));
 }
 
-static void cliPrint(uint8_t ch)
+static void cliWrite(uint8_t ch)
 {
     serialWrite(core.mspPort, ch);
 }
 
 static void cliPrintVar(const clivalue_t *var, uint32_t full)
 {
-    int value = 0;
+    int32_t value = 0;
     char buf[8];
 
     switch (var->type) {
@@ -1138,12 +1129,12 @@ static void cliSet(char *cmdline)
     len = strlen(cmdline);
 
     if (len == 0 || (len == 1 && cmdline[0] == '*')) {
-        cliPrintStr("Current settings: \r\n");
+        cliPrint("Current settings: \r\n");
         for (i = 0; i < VALUE_COUNT; i++) {
             val = &valueTable[i];
             printf("%s = ", valueTable[i].name);
             cliPrintVar(val, len); // when len is 1 (when * is passed as argument), it will print min/max values as well, for gui
-            cliPrintStr("\r\n");
+            cliPrint("\r\n");
         }
     } else if ((eqptr = strstr(cmdline, "=")) != NULL) {
         // has equal, set var
@@ -1164,12 +1155,12 @@ static void cliSet(char *cmdline)
                     printf("%s set to ", valueTable[i].name);
                     cliPrintVar(val, 0);
                 } else {
-                    cliPrintStr("ERR: Value assignment out of range\r\n");
+                    cliPrint("ERR: Value assignment out of range\r\n");
                 }
                 return;
             }
         }
-        cliPrintStr("ERR: Unknown variable name\r\n");
+        cliPrint("ERR: Unknown variable name\r\n");
     } else {
         // no equals, check for matching variables.
         for (i = 0; i < VALUE_COUNT; i++) {
@@ -1177,7 +1168,7 @@ static void cliSet(char *cmdline)
                 val = &valueTable[i];
                 printf("%s = ", valueTable[i].name);
                 cliPrintVar(val, 0);
-                cliPrintStr("\r\n");
+                printf("\r\n");
             }
         }
     }
@@ -1205,7 +1196,7 @@ static void cliStatus(char *cmdline)
 //        if (accHardware == ACC_MPU6050)
 //            printf(".%c", core.mpu6050_scale ? 'o' : 'n');
     }
-    cliPrintStr("\r\n");
+    cliPrint("\r\n");
 
     printf("Cycle Time: %d, config size: %d\r\n", cycleTime, sizeof(master_t));
 }
@@ -1213,14 +1204,14 @@ static void cliStatus(char *cmdline)
 static void cliVersion(char *cmdline)
 {
     UNUSED(cmdline);
-    cliPrintStr("Afro32 CLI version 2.3 " __DATE__ " / " __TIME__);
+    cliPrint("Afro32 CLI version 2.3 " __DATE__ " / " __TIME__);
 }
 
 void cliProcess()
 {
     if (!cliMode) {
         cliMode = 1;
-        cliPrintStr("\r\nEntering CLI Mode, type 'exit' to return, or 'help'\r\n");
+        cliPrint("\r\nEntering CLI Mode, type 'exit' to return, or 'help'\r\n");
         cliPrompt();
     }
 
@@ -1229,7 +1220,7 @@ void cliProcess()
         if (c == '\t' || c == '?') {
             // do tab completion
             const clicmd_t *cmd, *pstart = NULL, *pend = NULL;
-            int i = bufferIndex;
+            unsigned int i = bufferIndex;
             for (cmd = cmdTable; cmd < cmdTable + CMD_COUNT; cmd++) {
                 if (bufferIndex && (strncasecmp(cliBuffer, cmd->name, bufferIndex) != 0))
                     continue;
@@ -1252,28 +1243,28 @@ void cliProcess()
             }
             if (!bufferIndex || pstart != pend) {
                 /* Print list of ambiguous matches */
-                cliPrintStr("\r\033[K");
+                cliPrint("\r\033[K");
                 for (cmd = pstart; cmd <= pend; cmd++) {
-                    cliPrintStr(cmd->name);
-                    cliPrint('\t');
+                    cliPrint(cmd->name);
+                    cliWrite('\t');
                 }
                 cliPrompt();
                 i = 0;    /* Redraw prompt */
             }
             for (; i < (int)bufferIndex; i++)
-                cliPrint(cliBuffer[i]);
+                cliWrite(cliBuffer[i]);
         } else if (!bufferIndex && c == 4) {
             cliExit(cliBuffer);
             return;
         } else if (c == 12) {
             // clear screen
-            cliPrintStr("\033[2J\033[1;1H");
+            cliPrint("\033[2J\033[1;1H");
             cliPrompt();
         } else if (bufferIndex && (c == '\n' || c == '\r')) {
             // enter pressed
             clicmd_t *cmd = NULL;
             clicmd_t target;
-            cliPrintStr("\r\n");
+            cliPrint("\r\n");
             cliBuffer[bufferIndex] = 0; // null terminate
 
             target.name = cliBuffer;
@@ -1283,7 +1274,7 @@ void cliProcess()
             if (cmd)
                 cmd->func(cliBuffer + strlen(cmd->name) + 1);
             else
-                cliPrintStr("ERR: Unknown command, try 'help'");
+                cliPrint("ERR: Unknown command, try 'help'");
 
             memset(cliBuffer, 0, sizeof(cliBuffer));
             bufferIndex = 0;
@@ -1296,13 +1287,13 @@ void cliProcess()
             // backspace
             if (bufferIndex) {
                 cliBuffer[--bufferIndex] = 0;
-                cliPrintStr("\010 \010");
+                cliPrint("\010 \010");
             }
         } else if (bufferIndex < sizeof(cliBuffer) && c >= 32 && c <= 126) {
             if (!bufferIndex && c == 32)
                 continue;
             cliBuffer[bufferIndex++] = c;
-            cliPrint(c);
+            cliWrite(c);
         }
     }
 }

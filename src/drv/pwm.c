@@ -71,6 +71,7 @@ static pwmWriteFuncPtr pwmWritePtr = NULL;
 static uint8_t numMotors = 0;
 static uint8_t numServos = 0;
 static uint8_t numInputs = 0;
+static uint8_t pwmFilter = 0;
 static uint16_t failsafeThreshold = 985;
 // external vars (ugh)
 extern int16_t failsafeCnt;
@@ -195,19 +196,19 @@ void pwmICConfig(TIM_TypeDef *tim, uint8_t channel, uint16_t polarity)
     TIM_ICInitStructure.TIM_ICPolarity = polarity;
     TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
     TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
-    TIM_ICInitStructure.TIM_ICFilter = 0x03;
+    TIM_ICInitStructure.TIM_ICFilter = pwmFilter;
 
     TIM_ICInit(tim, &TIM_ICInitStructure);
 }
 
 static void pwmGPIOConfig(GPIO_TypeDef *gpio, uint32_t pin, GPIO_Mode mode)
 {
-    gpio_config_t gpioConfig;
+    gpio_config_t cfg;
 
-    gpioConfig.pin = pin;
-    gpioConfig.mode = mode;
-    gpioConfig.speed = Speed_2MHz;
-    gpioInit(gpio, &gpioConfig);
+    cfg.pin = pin;
+    cfg.mode = mode;
+    cfg.speed = Speed_2MHz;
+    gpioInit(gpio, &cfg);
 }
 
 static pwmPortData_t *pwmOutConfig(uint8_t port, uint8_t mhz, uint16_t period, uint16_t value)
@@ -323,34 +324,36 @@ static void pwmWriteStandard(uint8_t index, uint16_t value)
     *motors[index]->ccr = value;
 }
 
-void pwmInit(drv_pwm_config_t *config)
+void pwmInit(drv_pwm_config_t *init)
 {
     int i = 0;
     uint8_t CamStab = TYPE_CAMSTAB2;
-    const pwmPintData_t *hardwareMap;
+    const pwmPintData_t *setup;
 
-    if (config->useTri) {
+    if (init->useTri) {
         // this is tricopter,  set camstab alias
             CamStab = TYPE_CAMSTAB1;
     }
 
     // to avoid importing cfg/mcfg
-    failsafeThreshold = config->failsafeThreshold;
+    failsafeThreshold = init->failsafeThreshold;
+    // pwm filtering on input
+    pwmFilter = init->pwmFilter;
 
     // this is pretty hacky shit, but it will do for now. array of 4 config maps, [ multiPWM, multiNoPwm, airPWM, airNoPwm ]
-    if (config->airplane)
+    if (init->airplane)
         i = 2; // switch to air hardware config
-    if (config->noPwmRx)
+    if (init->noPwmRx)
         i++; // next index is for non PWM reciever
 
-    hardwareMap = hardwareMaps[i];
+    setup = hardwareMaps[i];
 
     for (i = 0; i < MAX_PORTS; i++) {
-        uint8_t port = hardwareMap[i].pin & 0x0F;
-        uint8_t mask = hardwareMap[i].pin & 0xF0;
-        uint8_t afmask = hardwareMap[i].af & 0xF0;
-        uint8_t afcamstab = hardwareMap[i].af & 0x0F;
-        if (hardwareMap[i].pin == 0xFF) // terminator
+        uint8_t port = setup[i].pin & 0x0F;
+        uint8_t mask = setup[i].pin & 0xF0;
+        uint8_t afmask = setup[i].af & 0xF0;
+        uint8_t afcamstab = setup[i].af & 0x0F;
+        if (setup[i].pin == 0xFF) // terminator
             break;
 
         // TODO we dont do sofserial , skip softSerial ports
@@ -363,7 +366,7 @@ void pwmInit(drv_pwm_config_t *config)
 //            continue;
 
         // if Serialrx , remap pwm 1 to motor and ignore flex port (currently unset, so ppm is 13output max)
-        if (config->useSerialrx) {
+        if (init->useSerialrx) {
             if (port == PWM15)
                 continue;
             if ((port == PWM1) && (mask & TYPE_IP))
@@ -371,20 +374,20 @@ void pwmInit(drv_pwm_config_t *config)
         }
 
         // 12c or uart use PWM 2 and 3 , always pwn 2/3
-        if ((config->useRcUART || config->useI2c) && (port == PWM2 || port == PWM3))
+        if ((init->useRcUART || init->useI2c) && (port == PWM2 || port == PWM3))
             continue;
 
         // if the user want the alternate function for this pin
-        if (config->useAf && (afmask & (TYPE_M | TYPE_S))) {
+        if (init->useAf && (afmask & (TYPE_M | TYPE_S))) {
             mask = afmask ;
         }
 
-        if (config->useTri && (port == PWM14)) {
+        if (init->useTri && (port == PWM14)) {
             // this is tricopter,  set tail servo
             mask = TYPE_S;
         }
         // Camstab demande servo pin , use the alias to find the pin
-        if (config->useCamStab && (afcamstab & CamStab)) {
+        if (init->useCamStab && (afcamstab & CamStab)) {
             mask = TYPE_S;
         }
 
@@ -397,23 +400,25 @@ void pwmInit(drv_pwm_config_t *config)
             numInputs++;
         } else if (mask & TYPE_M) {
             uint32_t hz, mhz;
-            if (config->motorPwmRate > 500)
+            if (init->motorPwmRate > 500)
                 mhz = PWM_BRUSHED_TIMER_MHZ;
             else
                 mhz = PWM_TIMER_MHZ;
             hz = mhz * 1000000;
 
-            motors[numMotors++] = pwmOutConfig(port, mhz, hz / config->motorPwmRate, config->idlePulse);
+            motors[numMotors++] = pwmOutConfig(port, mhz, hz / init->motorPwmRate, init->idlePulse);
         } else if (mask & TYPE_S) {
-            servos[numServos++] = pwmOutConfig(port, PWM_TIMER_MHZ, 1000000 / config->servoPwmRate, config->servoCenterPulse);
+            servos[numServos++] = pwmOutConfig(port, PWM_TIMER_MHZ, 1000000 / init->servoPwmRate, init->servoCenterPulse);
         }
     }
 
     // determine motor writer function
     pwmWritePtr = pwmWriteStandard;
-    if (config->motorPwmRate > 500)
+    if (init->motorPwmRate > 500)
         pwmWritePtr = pwmWriteBrushed;
 
+    // set return values in init struct
+    init->numServos = numServos;
 }
 
 void pwmWriteMotor(uint8_t index, uint16_t value)

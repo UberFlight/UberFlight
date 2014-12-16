@@ -17,10 +17,14 @@ typedef struct gpsInitData_t {
 } gpsInitData_t;
 
 // NMEA will cycle through these until valid data is received
-static const gpsInitData_t gpsInitData[] = { { GPS_BAUD_115200, 115200, "$PUBX,41,1,0003,0001,115200,0*1E\r\n", "$PMTK251,115200*1F\r\n" }, { GPS_BAUD_57600, 57600, "$PUBX,41,1,0003,0001,57600,0*2D\r\n", "$PMTK251,57600*2C\r\n" }, { GPS_BAUD_38400, 38400,
-        "$PUBX,41,1,0003,0001,38400,0*26\r\n", "$PMTK251,38400*27\r\n" }, { GPS_BAUD_19200, 19200, "$PUBX,41,1,0003,0001,19200,0*23\r\n", "$PMTK251,19200*22\r\n" },
+static const gpsInitData_t gpsInitData[] = {
+    { GPS_BAUD_115200, 115200, "$PUBX,41,1,0003,0001,115200,0*1E\r\n", "$PMTK251,115200*1F\r\n" },
+    { GPS_BAUD_57600,   57600, "$PUBX,41,1,0003,0001,57600,0*2D\r\n", "$PMTK251,57600*2C\r\n" },
+    { GPS_BAUD_38400,   38400, "$PUBX,41,1,0003,0001,38400,0*26\r\n", "$PMTK251,38400*27\r\n" },
+    { GPS_BAUD_19200,   19200, "$PUBX,41,1,0003,0001,19200,0*23\r\n", "$PMTK251,19200*22\r\n" },
 // 9600 is not enough for 5Hz updates - leave for compatibility to dumb NMEA that only runs at this speed
-        { GPS_BAUD_9600, 9600, "", "" } };
+    { GPS_BAUD_9600,     9600, "$PUBX,41,1,0003,0001,9600,0*16\r\n", "" }
+};
 
 static const uint8_t ubloxInit[] = {
     0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xF0, 0x05, 0x00, 0xFF, 0x19,           // VGS: Course over ground and Ground speed
@@ -327,19 +331,20 @@ static bool gpsNewFrame(uint8_t c)
 /* GPS navigation can control the heading */
 #define NAV_TAIL_FIRST             0    // true - copter comes in with tail first#define NAV_SET_TAKEOFF_HEADING    1    // true - when copter arrives to home position it rotates it's head to takeoff direction
 #define GPS_FILTERING              1    // add a 5 element moving average filter to GPS coordinates, helps eliminate gps noise but adds latency#define GPS_LOW_SPEED_D_FILTER     1    // below .5m/s speed ignore D term for POSHOLD_RATE, theoretically this also removed D term induced noise
- bool check_missed_wp(void);
- void GPS_distance_cm_bearing(int32_t * lat1, int32_t * lon1, int32_t * lat2, int32_t * lon2, uint32_t * dist, int32_t * bearing);
+
+static bool check_missed_wp(void);
+static void GPS_distance_cm_bearing(int32_t * lat1, int32_t * lon1, int32_t * lat2, int32_t * lon2, int32_t * dist, int32_t * bearing);
 //static void GPS_distance(int32_t lat1, int32_t lon1, int32_t lat2, int32_t lon2, uint16_t* dist, int16_t* bearing);
- void GPS_calc_longitude_scaling(int32_t lat);
- void GPS_calc_velocity(void);
- void GPS_calc_location_error(int32_t * target_lat, int32_t * target_lng, int32_t * gps_lat, int32_t * gps_lng);
- void GPS_calc_poshold(void);
- void GPS_calc_nav_rate(int max_speed);
- void GPS_update_crosstrack(void);
- bool UBLOX_parse_gps(void);
- int16_t GPS_calc_desired_speed(int16_t max_speed, bool _slow);
+static void GPS_calc_longitude_scaling(int32_t lat);
+static void GPS_calc_velocity(void);
+static void GPS_calc_location_error(int32_t * target_lat, int32_t * target_lng, int32_t * gps_lat, int32_t * gps_lng);
+static void GPS_calc_poshold(void);
+static void GPS_calc_nav_rate(int max_speed);
+static void GPS_update_crosstrack(void);
+static bool UBLOX_parse_gps(void);
+static int16_t GPS_calc_desired_speed(int16_t max_speed, bool _slow);
 int32_t wrap_18000(int32_t err);
- int32_t wrap_36000(int32_t deg);
+static int32_t wrap_36000(int32_t deg);
 
 typedef struct {
     int16_t last_velocity;
@@ -456,7 +461,7 @@ static int16_t crosstrack_error;
 // distance between plane and home in cm
 //static int32_t home_distance;
 // distance between plane and next_WP in cm
-static uint32_t wp_distance;
+int32_t wp_distance;
 
 // used for slow speed wind up when start navigation;
 static int16_t waypoint_speed_gov;
@@ -484,7 +489,7 @@ static void gpsNewData(uint16_t c)
 {
     int axis;
     static uint32_t nav_loopTimer;
-    uint32_t dist;
+    int32_t dist;
     int32_t dir;
     int16_t speed;
 
@@ -675,7 +680,7 @@ int8_t gpsSetPassthrough(void)
 // this is used to offset the shrinking longitude as we go towards the poles
 // It's ok to calculate this once per waypoint setting, since it changes a little within the reach of a multicopter
 //
- void GPS_calc_longitude_scaling(int32_t lat)
+static void GPS_calc_longitude_scaling(int32_t lat)
 {
     float rads = (abs((float)lat) / 10000000.0f) * 0.0174532925f;
     GPS_scaleLonDown = cosf(rads);
@@ -701,7 +706,7 @@ void GPS_set_next_wp(int32_t *lat, int32_t *lon)
 ////////////////////////////////////////////////////////////////////////////////////
 // Check if we missed the destination somehow
 //
- bool check_missed_wp(void)
+static bool check_missed_wp(void)
 {
     int32_t temp;
     temp = target_bearing - original_target_bearing;
@@ -712,7 +717,7 @@ void GPS_set_next_wp(int32_t *lat, int32_t *lon)
 ////////////////////////////////////////////////////////////////////////////////////
 // Get distance between two points in cm
 // Get bearing from pos1 to pos2, returns an 1deg = 100 precision
- void GPS_distance_cm_bearing(int32_t * lat1, int32_t * lon1, int32_t * lat2, int32_t * lon2, uint32_t * dist, int32_t * bearing)
+static void GPS_distance_cm_bearing(int32_t * lat1, int32_t * lon1, int32_t * lat2, int32_t * lon2, int32_t * dist, int32_t * bearing)
 {
     float dLat = *lat2 - *lat1; // difference of latitude in 1/10 000 000 degrees
     float dLon = (float)(*lon2 - *lon1) * GPS_scaleLonDown;
@@ -737,7 +742,7 @@ void GPS_set_next_wp(int32_t *lat, int32_t *lon)
 ////////////////////////////////////////////////////////////////////////////////////
 // Calculate our current speed vector from gps position data
 //
- void GPS_calc_velocity(void)
+static void GPS_calc_velocity(void)
 {
     static int16_t speed_old[2] = { 0, 0 };
     static int32_t last[2] = { 0, 0 };
@@ -771,7 +776,7 @@ void GPS_set_next_wp(int32_t *lat, int32_t *lon)
 //      3000    = 33m
 //      10000   = 111m
 //
- void GPS_calc_location_error(int32_t *target_lat, int32_t *target_lng, int32_t *gps_lat, int32_t *gps_lng)
+static void GPS_calc_location_error(int32_t *target_lat, int32_t *target_lng, int32_t *gps_lat, int32_t *gps_lng)
 {
     error[LON] = (float)(*target_lng - *gps_lng) * GPS_scaleLonDown;   // X Error
     error[LAT] = *target_lat - *gps_lat;        // Y Error
@@ -780,7 +785,7 @@ void GPS_set_next_wp(int32_t *lat, int32_t *lon)
 ////////////////////////////////////////////////////////////////////////////////////
 // Calculate nav_lat and nav_lon from the x and y error and the speed
 //
- void GPS_calc_poshold(void)
+static void GPS_calc_poshold(void)
 {
     int32_t d;
     int32_t target_speed;
@@ -790,7 +795,8 @@ void GPS_set_next_wp(int32_t *lat, int32_t *lon)
         target_speed = get_P(error[axis], &posholdPID_PARAM);       // calculate desired speed from lon error
         rate_error[axis] = target_speed - actual_speed[axis];       // calc the speed error
 
-        nav[axis] = get_P(rate_error[axis], &poshold_ratePID_PARAM) + get_I(rate_error[axis] + error[axis], &dTnav, &poshold_ratePID[axis], &poshold_ratePID_PARAM);
+        nav[axis] = get_P(rate_error[axis], &poshold_ratePID_PARAM) +
+                    get_I(rate_error[axis] + error[axis], &dTnav, &poshold_ratePID[axis], &poshold_ratePID_PARAM);
         d = get_D(error[axis], &dTnav, &poshold_ratePID[axis], &poshold_ratePID_PARAM);
         d = constrain(d, -2000, 2000);
 
@@ -809,7 +815,7 @@ void GPS_set_next_wp(int32_t *lat, int32_t *lon)
 ////////////////////////////////////////////////////////////////////////////////////
 // Calculate the desired nav_lat and nav_lon for distance flying such as RTH
 //
- void GPS_calc_nav_rate(int max_speed)
+static void GPS_calc_nav_rate(int max_speed)
 {
     float trig[2];
     float temp;
@@ -827,7 +833,9 @@ void GPS_set_next_wp(int32_t *lat, int32_t *lon)
         rate_error[axis] = (trig[axis] * max_speed) - actual_speed[axis];
         rate_error[axis] = constrain(rate_error[axis], -1000, 1000);
         // P + I + D
-        nav[axis] = get_P(rate_error[axis], &navPID_PARAM) + get_I(rate_error[axis], &dTnav, &navPID[axis], &navPID_PARAM) + get_D(rate_error[axis], &dTnav, &navPID[axis], &navPID_PARAM);
+        nav[axis] = get_P(rate_error[axis], &navPID_PARAM) +
+                    get_I(rate_error[axis], &dTnav, &navPID[axis], &navPID_PARAM) +
+                    get_D(rate_error[axis], &dTnav, &navPID[axis], &navPID_PARAM);
 
         nav[axis] = constrain(nav[axis], -NAV_BANK_MAX, NAV_BANK_MAX);
         poshold_ratePID[axis].integrator = navPID[axis].integrator;
@@ -838,7 +846,7 @@ void GPS_set_next_wp(int32_t *lat, int32_t *lon)
 // Calculating cross track error, this tries to keep the copter on a direct line
 // when flying to a waypoint.
 //
- void GPS_update_crosstrack(void)
+static void GPS_update_crosstrack(void)
 {
     if (abs(wrap_18000(target_bearing - original_target_bearing)) < 4500) {     // If we are too far off or too close we don't do track following
         float temp = (target_bearing - original_target_bearing) * RADX100;
@@ -861,7 +869,7 @@ void GPS_set_next_wp(int32_t *lat, int32_t *lon)
 //                 |                                        +|+
 //                 |< we should slow to 1.5 m/s as we hit the target
 //
- int16_t GPS_calc_desired_speed(int16_t max_speed, bool _slow)
+static int16_t GPS_calc_desired_speed(int16_t max_speed, bool _slow)
 {
     // max_speed is default 400 or 4m/s
     if (_slow) {
@@ -892,7 +900,7 @@ int32_t wrap_18000(int32_t err)
     return err;
 }
 
- int32_t wrap_36000(int32_t deg)
+static int32_t wrap_36000(int32_t deg)
 {
     if (deg > 36000)
         deg -= 36000;
@@ -983,7 +991,7 @@ uint32_t GPS_coord_to_degrees(char* s)
 }
 
 // helper functions
- uint32_t grab_fields(char *src, uint8_t mult)
+static uint32_t grab_fields(char *src, uint8_t mult)
 {                               // convert string to uint32
     uint32_t i;
     uint32_t tmp = 0;
@@ -1032,7 +1040,7 @@ typedef struct gpsMessage_t {
     uint16_t ground_course;
 } gpsMessage_t;
 
- bool gpsNewFrameNMEA(char c)
+static bool gpsNewFrameNMEA(char c)
 {
     uint8_t frameOK = 0;
     static uint8_t param = 0, offset = 0, parity = 0;
@@ -1127,6 +1135,10 @@ typedef struct gpsMessage_t {
                         case FRAME_RMC:
                             GPS_speed = gps_msg.speed;
                             GPS_ground_course = gps_msg.ground_course;
+                            if (!sensors(SENSOR_MAG) && GPS_speed > 100) {
+                                GPS_ground_course = wrap_18000(GPS_ground_course * 10) / 10;
+                                heading = GPS_ground_course / 10;    // Use values Based on GPS if we are moving.
+                            }
                             break;
                     }
                 }
@@ -1306,7 +1318,7 @@ void _update_checksum(uint8_t *data, uint8_t len, uint8_t *ck_a, uint8_t *ck_b)
     }
 }
 
-bool gpsNewFrameUBLOX(uint8_t data)
+static bool gpsNewFrameUBLOX(uint8_t data)
 {
     bool parsed = false;
 
@@ -1368,7 +1380,7 @@ bool gpsNewFrameUBLOX(uint8_t data)
     return parsed;
 }
 
- bool UBLOX_parse_gps(void)
+static bool UBLOX_parse_gps(void)
 {
     int i;
     switch (_msg_id) {
@@ -1399,12 +1411,9 @@ bool gpsNewFrameUBLOX(uint8_t data)
         GPS_speed = _buffer.velned.speed_2d;    // cm/s
         GPS_ground_course = (uint16_t) (_buffer.velned.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
         _new_speed = true;
-        if (!sensors(SENSOR_MAG) && f.FIXED_WING && GPS_speed > 100) {
+        if (!sensors(SENSOR_MAG) && GPS_speed > 100) {
+            GPS_ground_course = wrap_18000(GPS_ground_course * 10) / 10;
             heading = GPS_ground_course / 10;    // Use values Based on GPS if we are moving.
-            if (heading <= - 180)
-                heading += 360;
-            if (heading >=  180)
-                heading -= 360;
         }
         break;
     case MSG_SVINFO:

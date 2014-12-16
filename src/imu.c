@@ -14,7 +14,6 @@ uint32_t baroPressureSum = 0;
 int32_t BaroAlt = 0;
 float sonarTransition = 0;
 int32_t baroAlt_offset = 0;
-int16_t sonarAnglecorrection;
 int32_t sonarAlt = -1;         // in cm , -1 indicate sonar is not in range
 int32_t EstAlt;                // in cm
 int32_t BaroPID = 0;
@@ -41,15 +40,9 @@ static void getEstimatedAttitude(void);
 
 void imuInit(void)
 {
-    int16_t deg, min;
-
     // calculate magnetic declination
-    deg = cfg.mag_declination / 100;
-    min = cfg.mag_declination % 100;
     if (sensors(SENSOR_MAG))
-        magneticDeclination = (deg + ((float)min * (1.0f / 60.0f))) * 10; // heading is in 0.1deg units
-    else
-        magneticDeclination = 0.0f;
+        magneticDeclination = ((cfg.mag_declination / 100) + ((float)(cfg.mag_declination % 100) * (1.0f / 60.0f))) * 10; // heading is in 0.1deg units
 
     // what is considered a safe angle
     smallAngle = lrintf(acc_1G * cosf(RAD * cfg.small_angle));
@@ -131,14 +124,15 @@ void normalizeV(struct fp_vector *src, struct fp_vector *dest)
     }
 }
 
-// Rotate Estimated vector(s) according to the gyro delta
+// Rotate Estimated vector(s) with small angle approximation, according to the gyro data
 void rotateV(struct fp_vector *v, float *delta)
 {
     struct fp_vector v_tmp = *v;
 
+    // This does a  "proper" matrix rotation using gyro deltas without small-angle approximation
     float mat[3][3];
     float cosx, sinx, cosy, siny, cosz, sinz;
-    float coszcosx, coszcosy, sinzcosx, coszsinx, sinzsinx;
+    float coszcosx, sinzcosx, coszsinx, sinzsinx;
 
     cosx = cosf(delta[ROLL]);
     sinx = sinf(delta[ROLL]);
@@ -148,12 +142,11 @@ void rotateV(struct fp_vector *v, float *delta)
     sinz = sinf(delta[YAW]);
 
     coszcosx = cosz * cosx;
-    coszcosy = cosz * cosy;
     sinzcosx = sinz * cosx;
     coszsinx = sinx * cosz;
     sinzsinx = sinx * sinz;
 
-    mat[0][0] = coszcosy;
+    mat[0][0] = cosz * cosy;
     mat[0][1] = -cosy * sinz;
     mat[0][2] = siny;
     mat[1][0] = sinzcosx + (coszsinx * siny);
@@ -299,17 +292,16 @@ static void getEstimatedAttitude(void)
 
     acc_calc(deltaT); // rotate acc vector into earth frame
 
-    // dont this belong to some output function ?
     if (cfg.throttle_correction_value) {
         float cosZ = EstG.V.Z / sqrtf(EstG.V.X * EstG.V.X + EstG.V.Y * EstG.V.Y + EstG.V.Z * EstG.V.Z);
 
         if (cosZ <= 0.015f) { // we are inverted, vertical or with a small angle < 0.86 deg
             throttleAngleCorrection = 0;
         } else {
-            int throttleAngle = lrintf(acosf(cosZ) * throttleAngleScale);
-            if (throttleAngle > 900)
-                throttleAngle = 900;
-            throttleAngleCorrection = lrintf(cfg.throttle_correction_value * sinf(throttleAngle / (900.0f * M_PI / 2.0f)));
+            int deg = lrintf(acosf(cosZ) * throttleAngleScale);
+            if (deg > 900)
+                deg = 900;
+            throttleAngleCorrection = lrintf(cfg.throttle_correction_value * sinf(deg / (900.0f * M_PI / 2.0f)));
         }
     }
 }
@@ -335,6 +327,7 @@ int getEstimatedAltitude(void)
     static int32_t lastBaroAlt;
     static int32_t baroGroundAltitude = 0;
     static int32_t baroGroundPressure = 0;
+    int16_t tiltAngle = max(abs(angle[ROLL]), abs(angle[PITCH]));
 
     dTime = currentT - previousT;
     if (dTime < UPDATE_INTERVAL)
@@ -357,13 +350,13 @@ int getEstimatedAltitude(void)
     BaroAlt_tmp -= baroGroundAltitude;
     BaroAlt = lrintf((float)BaroAlt * cfg.baro_noise_lpf + (float)BaroAlt_tmp * (1.0f - cfg.baro_noise_lpf)); // additional LPF to reduce baro noise
 
-    // calculate sonar altitude
-    sonarAnglecorrection = max(abs(angle[ROLL]), abs(angle[PITCH]));
-    if (sonarAnglecorrection > 250)
+    // calculate sonar altitude only if the sonar is facing downwards(<25deg)
+    if (tiltAngle > 250)
         sonarAlt = -1;
     else
-        sonarAlt = sonarAlt * (900.0f - sonarAnglecorrection) / 900.0f;
+        sonarAlt = sonarAlt * (900.0f - tiltAngle) / 900.0f;
 
+    // do sonarAlt and baroAlt fusion
     if (sonarAlt > 0 && sonarAlt < 200) {
         baroAlt_offset = BaroAlt - sonarAlt;
         BaroAlt = sonarAlt;
@@ -386,11 +379,10 @@ int getEstimatedAltitude(void)
     accAlt = accAlt * cfg.baro_cf_alt + (float)BaroAlt * (1.0f - cfg.baro_cf_alt);  // complementary filter for altitude estimation (baro & acc)
 
     // when the sonar is in his best range
-    if (sonarAlt > 0 && sonarAlt < 200) {
+    if (sonarAlt > 0 && sonarAlt < 200)
         EstAlt = BaroAlt;
-    } else {
+    else
         EstAlt = accAlt;
-    }
 
     vel += vel_acc;
 
@@ -416,7 +408,7 @@ int getEstimatedAltitude(void)
     // set vario
     vario = applyDeadband(vel_tmp, 5);
 
-    if (abs(angle[ROLL]) < 800 && abs(angle[PITCH]) < 800) { // only calculate pid if the copters thrust is facing downwards(<80deg)
+    if (tiltAngle < 800) { // only calculate pid if the copters thrust is facing downwards(<80deg)
     // Altitude P-Controller
         if (!velocityControl) {
             error = constrain(AltHold - EstAlt, -500, 500);
