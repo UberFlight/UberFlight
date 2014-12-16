@@ -132,9 +132,10 @@ bool sensorsAutodetect(void)
             sensorsClear(SENSOR_MAG);
 
     } else {
-//        if (!hmc5983DetectSpi(&mag))
-        sensorsClear(SENSOR_MAG);
-
+#if defined(NAZEPRO)
+        if (!hmc5983DetectSpi(&mag))
+            sensorsClear(SENSOR_MAG);
+#endif
     }
 
     if (!mpu6000DetectSpi(&acc, &gyro, mcfg.gyro_lpf)) {
