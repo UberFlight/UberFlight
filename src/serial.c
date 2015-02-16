@@ -10,7 +10,7 @@
 #include "telemetry_common.h"
 
 // Multiwii Serial Protocol 0
-#define MSP_VERSION              0
+#define MSP_VERSION              1
 #define CAP_PLATFORM_32BIT          ((uint32_t)1 << 31)
 #define CAP_BASEFLIGHT_CONFIG       ((uint32_t)1 << 30)
 #define CAP_DYNBALANCE              ((uint32_t)1 << 2)
@@ -68,6 +68,7 @@
 #define MSP_ACC_TRIM             240    //out message         get acc angle trim values
 #define MSP_SET_ACC_TRIM         239    //in message          set acc angle trim values
 #define MSP_GPSSVINFO            164    //out message         get Signal Strength (only U-Blox)
+#define MSP_GPSDEBUGINFO         166    //out message         get GPS debugging data (only U-Blox)
 
 // Additional private MSP for baseflight configurator
 #define MSP_RCMAP                64     //out message         get channel map (also returns number of channels total)
@@ -836,16 +837,32 @@ static void evaluateCommand(void)
         serialize32(U_ID_1);
         serialize32(U_ID_2);
         break;
+#ifdef GPS
     case MSP_GPSSVINFO:
         headSerialReply(1 + (GPS_numCh * 4));
         serialize8(GPS_numCh);
-           for (i = 0; i < GPS_numCh; i++){
-               serialize8(GPS_svinfo_chn[i]);
-               serialize8(GPS_svinfo_svid[i]);
-               serialize8(GPS_svinfo_quality[i]);
-               serialize8(GPS_svinfo_cno[i]);
-            }
+        for (i = 0; i < GPS_numCh; i++){
+            serialize8(GPS_svinfo_chn[i]);
+            serialize8(GPS_svinfo_svid[i]);
+            serialize8(GPS_svinfo_quality[i]);
+            serialize8(GPS_svinfo_cno[i]);
+        }
+        // Poll new SVINFO from GPS
+        gpsPollSvinfo();
         break;
+    case MSP_GPSDEBUGINFO:
+        headSerialReply(16);
+        if (sensors(SENSOR_GPS)) {
+            serialize32(GPS_update_rate[1] - GPS_update_rate[0]);
+            serialize32(GPS_svinfo_rate[1] - GPS_svinfo_rate[0]);
+        } else {
+            serialize32(0);
+            serialize32(0);
+        }
+        serialize32(GPS_HorizontalAcc);
+        serialize32(GPS_VerticalAcc);
+        break;
+#endif /* GPS */
 
     case MSP_SET_CONFIG:
         headSerialReply(0);

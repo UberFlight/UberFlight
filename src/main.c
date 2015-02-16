@@ -202,6 +202,9 @@ int main(void)
             case SERIALRX_MSP:
                 mspInit(&rcReadRawFunc);
                 break;
+            case SERIALRX_IBUS:
+                ibusInit(&rcReadRawFunc);
+                break;
         }
     }
 #ifndef CJMCU

@@ -47,8 +47,14 @@ static const uint8_t ubloxInit[] = {
     0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0x01, 0x03, 0x01, 0x0F, 0x49,           // set STATUS MSG rate
     0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0x01, 0x06, 0x01, 0x12, 0x4F,           // set SOL MSG rate
     0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0x01, 0x12, 0x01, 0x1E, 0x67,           // set VELNED MSG rate
-    0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0x01, 0x30, 0x01, 0x3C, 0xA3,           // set SVINFO MSG rate
     0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0xC8, 0x00, 0x01, 0x00, 0x01, 0x00, 0xDE, 0x6A,             // set rate to 5Hz
+    0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0x01, 0x00, 0x03, 0x03, 0x00, 0x00, 0x00, 0x00,             // CFG-NAV5 update start
+    0x10, 0x27, 0x00, 0x00, 0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00, 0x64, 0x00, 0x2C, 0x01,
+    0x00, 0x3C, 0x00, 0x00, 0x00, 0x00, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1A, 0x2D, //  CFG-NAV5 update end
+};
+
+static const uint8_t poll_svinfo[] = {
+        0xB5, 0x62, 0x01, 0x30, 0x00, 0x00, 0x31, 0x94 // Poll: UBX-NAV-SVINFO (0x01 0x30)
 };
 
 static uint8_t ubloxSbasInit[] = {
@@ -344,6 +350,19 @@ static bool gpsNewFrame(uint8_t c)
     return false;
 }
 
+// gpsPollSvinfo-function. Used for polling UBX-NAV-SVINFO (0x01 0x30) information from GPS.
+void gpsPollSvinfo(void)
+{
+    uint16_t i;
+
+    // If selected GPS isn't UBLOX then we don't poll UBX messages.
+    if (mcfg.gps_type != GPS_UBLOX)
+        return;
+
+    for (i = 0; i < sizeof(poll_svinfo); i++) {
+        serialWrite(core.gpsport, poll_svinfo[i]);
+    }
+}
 
 
 /*-----------------------------------------------------------
@@ -1329,8 +1348,9 @@ static bool _new_position;
 static bool _new_speed;
 
 // Receive buffer
-
-#define UBLOX_BUFFER_SIZE 200
+// Increased from 200 to 464, because new generation u-blox 8 GPS can find over 30 satellites.
+// Now maximum numCh is 38 (is calculated: 8 + 12*numCh).
+#define UBLOX_BUFFER_SIZE 464
 
 static union {
     ubx_nav_posllh posllh;
@@ -1421,10 +1441,15 @@ static bool UBLOX_parse_gps(void)
         GPS_coord[LON] = _buffer.posllh.longitude;
         GPS_coord[LAT] = _buffer.posllh.latitude;
         GPS_altitude = _buffer.posllh.altitude_msl / 10 / 100;  //alt in m
+        GPS_HorizontalAcc = _buffer.posllh.horizontal_accuracy;
+        GPS_VerticalAcc = _buffer.posllh.vertical_accuracy;
         f.GPS_FIX = next_fix;
         _new_position = true;
         if (!sensors(SENSOR_BARO) && f.FIXED_WING)
             EstAlt = (GPS_altitude - GPS_home[ALT]) * 100;    // Use values Based on GPS
+        // Update GPS update rate table.
+        GPS_update_rate[0] = GPS_update_rate[1];
+        GPS_update_rate[1] = millis();
         break;
     case MSG_STATUS:
         next_fix = (_buffer.status.fix_status & NAV_STATUS_FIX_VALID) && (_buffer.status.fix_type == FIX_3D);
@@ -1450,14 +1475,17 @@ static bool UBLOX_parse_gps(void)
         break;
     case MSG_SVINFO:
         GPS_numCh = _buffer.svinfo.numCh;
-        if (GPS_numCh > 16)
-            GPS_numCh = 16;
+        if (GPS_numCh > 32)
+            GPS_numCh = 32;
         for (i = 0; i < GPS_numCh; i++){
             GPS_svinfo_chn[i]= _buffer.svinfo.channel[i].chn;
             GPS_svinfo_svid[i]= _buffer.svinfo.channel[i].svid;
             GPS_svinfo_quality[i]=_buffer.svinfo.channel[i].quality;
             GPS_svinfo_cno[i]= _buffer.svinfo.channel[i].cno;
         }
+        // Update GPS SVIFO update rate table.
+        GPS_svinfo_rate[0] = GPS_svinfo_rate[1];
+        GPS_svinfo_rate[1] = millis();
         break;
     default:
         return false;
