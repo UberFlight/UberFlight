@@ -1295,6 +1295,7 @@
               <FileType>1</FileType>
               <FilePath>.\src\blackbox.c</FilePath>
             </File>
+            <File>
               <FileName>ibus.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\ibus.c</FilePath>
