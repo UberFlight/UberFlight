@@ -512,6 +512,11 @@
               <FilePath>.\src\fw_nav.c</FilePath>
             </File>
             <File>
+              <FileName>ibus.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\ibus.c</FilePath>
+            </File>
+            <File>
               <FileName>blackbox.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\blackbox.c</FilePath>
@@ -1289,6 +1294,10 @@
               <FileName>blackbox.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\blackbox.c</FilePath>
+            </File>
+              <FileName>ibus.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\ibus.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -2299,6 +2308,11 @@
               <FileName>fw_nav.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\fw_nav.c</FilePath>
+            </File>
+            <File>
+              <FileName>ibus.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\ibus.c</FilePath>
             </File>
             <File>
               <FileName>blackbox.c</FileName>
