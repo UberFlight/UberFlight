@@ -145,6 +145,8 @@ const clivalue_t valueTable[] = {
     { "motor_pwm_rate", VAR_UINT16, &mcfg.motor_pwm_rate, 50, 32000 },
     { "servo_pwm_rate", VAR_UINT16, &mcfg.servo_pwm_rate, 50, 498 },
     { "pwm_filter", VAR_UINT8, &mcfg.pwm_filter, 0, 15 },
+    { "oneshot", VAR_UINT8, &mcfg.oneshot, 0, 1 },
+    { "brushed_mode", VAR_UINT8, &mcfg.brushed_mode, 0, 1 },
     { "retarded_arm", VAR_UINT8, &mcfg.retarded_arm, 0, 1 },
     { "disarm_kill_switch", VAR_UINT8, &mcfg.disarm_kill_switch, 0, 1 },
     { "fw_althold_dir", VAR_INT8, &mcfg.fw_althold_dir, -1, 1 },
