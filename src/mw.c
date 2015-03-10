@@ -300,7 +300,7 @@ static void mwArm(void)
             headFreeModeHold = heading;
 
             if (!cliMode && feature(FEATURE_BLACKBOX))
-            	startBlackbox();
+                startBlackbox();
             // Beep for inform about arming
 #ifdef GPS
             if (feature(FEATURE_GPS) && f.GPS_FIX && GPS_numSat >= 5)
@@ -322,7 +322,7 @@ static void mwDisarm(void)
         f.ARMED = 0;
 
         if (feature(FEATURE_BLACKBOX))
-        	finishBlackbox();
+            finishBlackbox();
 
         // Beep for inform about disarming
         buzzer(BUZZER_DISARMING);
@@ -397,8 +397,8 @@ static void pidMultiWii(void)
 
         // Values for blackbox
         axisPID_P[axis] = PTerm;
-		axisPID_I[axis] = ITerm;
-		axisPID_D[axis] = -DTerm;
+        axisPID_I[axis] = ITerm;
+        axisPID_D[axis] = -DTerm;
     }
 }
 
@@ -471,8 +471,8 @@ static void pidRewrite(void)
 
         // Values for blackbox
         axisPID_P[axis] = PTerm;
-		axisPID_I[axis] = ITerm;
-		axisPID_D[axis] = DTerm;
+        axisPID_I[axis] = ITerm;
+        axisPID_D[axis] = DTerm;
     }
 }
 
@@ -1032,6 +1032,6 @@ void loop(void)
         writeMotors();
 
         if (!cliMode && feature(FEATURE_BLACKBOX))
-        	handleBlackbox();
+            handleBlackbox();
     }
 }

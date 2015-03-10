@@ -255,7 +255,7 @@ static void resetConf(void)
     mcfg.rssi_adc_max = 4095;
     mcfg.blackbox_rate_num = 1;
     mcfg.blackbox_rate_denom = 1;
-    
+
     cfg.pidController = 0;
     cfg.P8[ROLL] = 40;
     cfg.I8[ROLL] = 30;
