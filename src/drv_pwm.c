@@ -346,7 +346,7 @@ static void pwmWriteStandard(uint8_t index, uint16_t value)
     *motors[index]->ccr = value;
 }
 
-static void pwmWriteOneshot(uint8_t index, uint16_t value)
+static void pwmWriteSyncPwm(uint8_t index, uint16_t value)
 {
     *motors[index]->cr1 &= (uint16_t) ~(0x0001);    // disable timer
     *motors[index]->cnt = 0x0000;                   // set timer counter to zero
@@ -417,14 +417,18 @@ bool pwmInit(drv_pwm_config_t *init)
             numInputs++;
         } else if (mask & TYPE_M) {
             uint32_t hz, mhz;
-            if (init->motorPwmRate > 500)
+
+            if (init->motorPwmRate > 500 || init->fastPWM)
                 mhz = PWM_TIMER_8_MHZ;
             else
                 mhz = PWM_TIMER_MHZ;
+
             hz = mhz * 1000000;
 
-            if (init->oneshot)
-                period = 8000 * mhz; // 8ms period in oneshot mode, cycletime should be smaller than this
+            if (init->syncPWM)
+                period = 8000 * mhz; // 8ms period in syncPWM mode, cycletime should be smaller than this
+            else if (init->fastPWM)
+                period = hz / 4000;
             else
                 period = hz / init->motorPwmRate;
 
@@ -436,10 +440,10 @@ bool pwmInit(drv_pwm_config_t *init)
 
     // determine motor writer function
     pwmWritePtr = pwmWriteStandard;
-    if (init->brushed_mode)
+    if (init->motorPwmRate > 500)
         pwmWritePtr = pwmWriteBrushed;
-    else if (init->oneshot)
-        pwmWritePtr = pwmWriteOneshot;
+    else if (init->syncPWM)
+        pwmWritePtr = pwmWriteSyncPwm;
 
     // set return values in init struct
     init->numServos = numServos;

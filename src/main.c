@@ -160,12 +160,12 @@ int main(void)
     pwm_params.servoPwmRate = mcfg.servo_pwm_rate;
     pwm_params.pwmFilter = mcfg.pwm_filter;
     pwm_params.idlePulse = PULSE_1MS; // standard PWM for brushless ESC (default, overridden below)
-    pwm_params.brushed_mode = mcfg.brushed_mode;
     if (feature(FEATURE_3D))
         pwm_params.idlePulse = mcfg.neutral3d;
-    if (pwm_params.brushed_mode)
+    if (pwm_params.motorPwmRate > 500)
         pwm_params.idlePulse = 0; // brushed motors
-    pwm_params.oneshot = mcfg.oneshot;
+    pwm_params.syncPWM = feature(FEATURE_SYNCPWM);
+    pwm_params.fastPWM = feature(FEATURE_FASTPWM);
     pwm_params.servoCenterPulse = mcfg.midrc;
     pwm_params.failsafeThreshold = cfg.failsafe_detect_threshold;
     switch (mcfg.power_adc_channel) {

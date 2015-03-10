@@ -96,7 +96,9 @@ typedef enum {
     FEATURE_VARIO = 1 << 13,
     FEATURE_3D = 1 << 14,
     FEATURE_FW_FAILSAFE_RTH = 1 << 15,
-    FEATURE_BLACKBOX = 1 << 16
+    FEATURE_BLACKBOX = 1 << 16,
+    FEATURE_SYNCPWM = 1 << 17,
+    FEATURE_FASTPWM = 1 << 18
 } AvailableFeatures;
 
 typedef enum {
