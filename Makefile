@@ -5,7 +5,7 @@
 # this stuff is worth it, you can buy me a beer in return
 ###############################################################################
 #
-# Makefile for building the baseflight firmware.
+# Makefile for building the UberFlight  firmware.
 #
 # Invoke this with 'make help' to see the list of supported targets.
 # 
@@ -192,10 +192,10 @@ $(error Target '$(TARGET)' is not valid, must be one of $(VALID_TARGETS))
 endif
 
 
-TARGET_HEX	 = $(BIN_DIR)/baseflight_$(TARGET).hex
-TARGET_ELF	 = $(BIN_DIR)/baseflight_$(TARGET).elf
+TARGET_HEX	 = $(BIN_DIR)/uberflight_$(TARGET).hex
+TARGET_ELF	 = $(BIN_DIR)/uberflight_$(TARGET).elf
 TARGET_OBJS	 = $(addsuffix .o,$(addprefix $(OBJECT_DIR)/$(TARGET)/,$(basename $($(TARGET)_SRC))))
-TARGET_MAP   = $(OBJECT_DIR)/baseflight_$(TARGET).map
+TARGET_MAP   = $(OBJECT_DIR)/uberflight_$(TARGET).map
 
 # List of buildable ELF files and their object dependencies.
 # It would be nice to compute these lists, but that seems to be just beyond make.
@@ -241,7 +241,7 @@ unbrick: unbrick_$(TARGET)
 
 help:
 	@echo ""
-	@echo "Makefile for the baseflight firmware"
+	@echo "Makefile for the UberFlight firmware"
 	@echo ""
 	@echo "Usage:"
 	@echo "        make [TARGET=<target>] [OPTIONS=\"<options>\"]"
