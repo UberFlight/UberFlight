@@ -299,10 +299,13 @@ static void mwArm(void)
             f.ARMED = 1;
             headFreeModeHold = heading;
 
+#ifndef CJMCU
             if (!cliMode && feature(FEATURE_BLACKBOX))
                 startBlackbox();
-            // Beep for inform about arming
+#endif
+
 #ifdef GPS
+            // Beep for inform about arming
             if (feature(FEATURE_GPS) && f.GPS_FIX && GPS_numSat >= 5)
                 buzzer(BUZZER_ARMING_GPS_FIX);
             else
@@ -321,8 +324,10 @@ static void mwDisarm(void)
     if (f.ARMED) {
         f.ARMED = 0;
 
+#ifndef CJMCU
         if (feature(FEATURE_BLACKBOX))
             finishBlackbox();
+#endif
 
         // Beep for inform about disarming
         buzzer(BUZZER_DISARMING);
@@ -395,10 +400,12 @@ static void pidMultiWii(void)
         DTerm = (deltaSum * dynD8[axis]) / 32;
         axisPID[axis] = PTerm + ITerm - DTerm;
 
+#ifndef CJMCU
         // Values for blackbox
         axisPID_P[axis] = PTerm;
         axisPID_I[axis] = ITerm;
         axisPID_D[axis] = -DTerm;
+#endif
     }
 }
 
@@ -469,10 +476,12 @@ static void pidRewrite(void)
         // -----calculate total PID output
         axisPID[axis] = PTerm + ITerm + DTerm;
 
+#ifndef CJMCU
         // Values for blackbox
         axisPID_P[axis] = PTerm;
         axisPID_I[axis] = ITerm;
         axisPID_D[axis] = DTerm;
+#endif
     }
 }
 
@@ -1031,7 +1040,9 @@ void loop(void)
         writeServos();
         writeMotors();
 
+#ifndef CJMCU
         if (!cliMode && feature(FEATURE_BLACKBOX))
             handleBlackbox();
+#endif
     }
 }
